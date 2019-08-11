@@ -1,9 +1,0 @@
-[submodule "bipropellant-hoverboard-api"]
-	path = bipropellant-hoverboard-api
-	url = https://github.com/bipropellant/bipropellant-hoverboard-api
-[submodule "Arduino-PID-Library"]
-	path = Arduino-PID-Library
-	url = https://github.com/br3ttb/Arduino-PID-Library
-[submodule "Filters"]
-	path = Filters
-	url = https://github.com/JonHub/Filters.git
