@@ -11,14 +11,23 @@
 #define wheel_diameter 518.68
 #define wheel_arc_per_tick 5.1868
 #include <HoverboardAPI.h>
+#include <Filters.h>
+
+// filters out changes faster that 5 Hz.
+float filterFrequency = 5.0;
+
+// create a one pole (RC) lowpass filter
+FilterOnePole lowpassFilter( LOWPASS, filterFrequency );   
+
 
 
 //Define Variables we'll be connecting to
-double Setpoint, Input, Output;
+double Setpoint = 0.2, Input, Output;
 double last_setpoint = 0;
+double max_PID_output = 150;
 
 //Specify the links and initial tuning parameters
-double Kp = 20, Ki = 0, Kd = 0;
+double Kp = 280, Ki = 10, Kd = 2;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 
@@ -112,7 +121,9 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(hall_A_int), hall_c_change, CHANGE);
   //attachInterrupt(digitalPinToInterrupt(hall_B_int), hall_a_fall, FALLING);
   pinMode(LED, OUTPUT);
-  Setpoint = 1;
+  Setpoint = 0.1;
+
+myPID.SetOutputLimits((-1)*max_PID_output, max_PID_output);
 
   //turn the PID on
   myPID.SetMode(AUTOMATIC);
@@ -144,7 +155,7 @@ bool s_flag = false;
 void loop() {
   //digitalWrite(LED, HIGH);
   delay(500);
-  int upto = 10;
+  float upto = 0.3;
   while (1) {
     //    while (Serial.available() > 0) {
     //      // hoverboard.sendBuzzer((8), 1, 100, PROTOCOL_SOM_NOACK);
@@ -165,14 +176,14 @@ void loop() {
 
     if (s_flag) {
 
-      Setpoint += 0.1;
+      Setpoint += 0.01;
 
       if (Setpoint > upto) {
         s_flag = false;
 
       }
     } else if (!s_flag)  {
-      Setpoint -= 0.1;
+      Setpoint -= 0.01;
       if (Setpoint < (upto*-1)) {
         s_flag = true;
       }
@@ -180,7 +191,16 @@ void loop() {
 
     last_setpoint = Setpoint;
 
-    Input = float(((float)wheel_arc_per_tick * ((float)counter - (float)last_counter)) / (1000 * ((float)millis() - (float)timer))) * -10000.0;
+    float dt = ((float)millis() - (float)timer) * 1000.0;
+    float dx = (((float)counter - (float)last_counter)) * (float)wheel_arc_per_tick;
+      dx = lowpassFilter.input( dx );
+
+    Input = (dx/dt)*(-1000);
+    timer = millis();
+    last_counter = counter;
+    
+
+    //Input = float(((float)wheel_arc_per_tick * ((float)counter - (float)last_counter)) / (1000 * ((float)millis() - (float)timer))) * -10000.0;
     myPID.Compute();
     speed_var_2 = Output;
 
@@ -204,7 +224,7 @@ void loop() {
     //      hoverboard.sendPWM((-1)*i, 0, PROTOCOL_SOM_NOACK);
     //      print_velocity();
     //    }
-    hoverboard.sendPWM(speed_var_2, 0, PROTOCOL_SOM_NOACK);
+    hoverboard.sendPWM(speed_var_2, speed_var_2, PROTOCOL_SOM_NOACK);
     //hoverboard.sendPWMData(10, speed_var, 100, 50, 10, PROTOCOL_SOM_NOACK);
 
     Serial.print("input: ");
