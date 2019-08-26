@@ -27,7 +27,7 @@ double last_setpoint = 0;
 double max_PID_output = 150;
 
 //Specify the links and initial tuning parameters
-double Kp = 280, Ki = 10, Kd = 2;
+double Kp = 280, Ki = 10, Kd = 2; 
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 
