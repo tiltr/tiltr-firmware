@@ -9,18 +9,18 @@
 #include "Arduino.h"
 
 
-#define hall_A_int PA10
-#define hall_B_int PB3
-#define hall_C_int PB5
+#define hall_A_int PA10 //2
+#define hall_B_int PB3  //3 
+#define hall_C_int PB5  //4
 
-#define r_hall_A_int PB4
-#define r_hall_B_int PA8
-#define r_hall_C_int PA9
+#define r_hall_A_int PB4 //5 
+#define r_hall_B_int PA8 //7
+#define r_hall_C_int PA9 //8
 
 class wheel_encoder
 {
   public:
-    wheel_encoder(bool right);
+    wheel_encoder(char side);
     void dot();
     void dash();
   private:
