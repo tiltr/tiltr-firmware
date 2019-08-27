@@ -3,35 +3,37 @@
 
 wheel_encoder::wheel_encoder(char side)
 {
-  if (side == 'r' || side = 'R') {
-    attachInterrupt(digitalPinToInterrupt(r_hall_B_int), r_hall_a_change, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(r_hall_C_int), r_hall_b_change, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(r_hall_A_int), r_hall_c_change, CHANGE);
-  } else if (side == 'l' || side = 'L'){
-    attachInterrupt(digitalPinToInterrupt(hall_B_int), hall_a_change, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(hall_C_int), hall_b_change, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(hall_A_int), hall_c_change, CHANGE);
+  if (side == 'r' || side == 'R') {
+    hall_A_int = r_hall_A_int;
+    hall_B_int = r_hall_B_int;
+    hall_C_int = r_hall_C_int;
+    invert = 1;
   }
-  pinMode(pin, OUTPUT);
-  _pin = pin;
+  else if (side == 'l' || side == 'L') {
+    hall_A_int = l_hall_A_int;
+    hall_B_int = l_hall_B_int;
+    hall_C_int = l_hall_C_int;
+    invert = -1;
+  }
+  timer = millis();
 }
 
-void wheel_encoder::dot()
-{
-  digitalWrite(_pin, HIGH);
-  delay(250);
-  digitalWrite(_pin, LOW);
-  delay(250);
+float wheel_encoder::get_velocity() {
+  velocity = float(((float)wheel_arc_per_tick * ((float)counter - (float)last_counter)) / (1000 * ((float)millis() - (float)timer))) * 1000.0;
+  velocity = velocity * (float)invert;
+  last_counter = counter ;
+  timer = millis();
+
+  return velocity;
 }
 
-void wheel_encoder::dash()
-{
-  digitalWrite(_pin, HIGH);
-  delay(1000);
-  digitalWrite(_pin, LOW);
-  delay(250);
+int wheel_encoder::get_counter() {
+  return counter;
 }
 
+bool wheel_encoder::get_direction() {
+  return forward;
+}
 
 void wheel_encoder::hall_a_change()
 {
