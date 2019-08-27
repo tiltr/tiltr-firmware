@@ -38,7 +38,9 @@ void r_hall_c_change() {
 }
 
 void setup() {
+  // Comms to PC
   Serial.begin(9600);
+  // Comms to hoverboard
   Serial4.begin(115200);
 
   attachInterrupt(digitalPinToInterrupt(left_encoder.hall_B_int), l_hall_a_change, CHANGE);
@@ -98,7 +100,7 @@ void loop() {
 
 
     if (((millis() - timer_2) > 1000) && p_flag) {
-      //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som) {
+      //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
       hoverboard.sendBuzzer(10, 1, 100, PROTOCOL_SOM_NOACK);
       Serial4.println("unlockASCII");
       Serial4.println('P');
