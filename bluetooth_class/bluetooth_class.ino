@@ -8,51 +8,66 @@ class SerialMessenger {
       hwStream = &device;
     }
     void begin(uint32_t baudRate);
-    char* checkForNewMessage(const char endMarker, bool errors);
+    struct btData checkForNewMessage(const char endMarker, bool errors);
 
   private:
+    struct btData parseMessage(char* incommingMessage);
     HardwareSerial* hwStream;
     Stream* stream;
     char incomingMessage[MESSAGE_LENGTH];
     size_t idx = 0;
 };
 
-char* SerialMessenger::parseMessage(char* incommingMessage) {
-  char* separator = strchr(command, '=');
+
+
+struct btData {
+  char id;
+  float value;
+};
+
+struct btData last_data;
+struct btData SerialMessenger::parseMessage(char* incommingMessage) {
+  struct btData parsed_data;
+
+  // Split the command in two values
+  char* separator = strchr(incommingMessage, '=');
+
+  // If we're not at the end of the array?
   if (separator != 0)
   {
     // Actually split the string in 2: replace ':' with 0
     *separator = 0;
-    char ID = command[0];
+    char ID = incommingMessage[0];
     ++separator;
     int iPosition = atoi(separator);
     float fPosition = atof(separator);
-    Serial.println(fPosition);
-    Serial.println(iPosition);
     if (iPosition != 999) {
-      switch (ID) {
-      }
-      // .....
+      parsed_data.id = ID;
+      parsed_data.value = fPosition;
     }
-  }
+
+  return parsed_data;
+  
 }
 
-char* SerialMessenger::checkForNewMessage(const char endMarker, bool errors = false)
+struct btData SerialMessenger::checkForNewMessage(const char endMarker, bool errors = false)
 {
+  struct btData parsed_data;
   stream = hwStream;
   if (stream->available())
   {
     if (stream->peek() == '\r')
     {
       (void)stream->read();
-      return nullptr;
+      return parsed_data; 
     }
     incomingMessage[idx] = stream->read();
     if (incomingMessage[idx] == endMarker)
     {
       incomingMessage[idx] = '\0';
-      idx = 0;
-      return incomingMessage;
+      idx = 0;      
+      parsed_data = parseMessage(incomingMessage);      
+      return parsed_data;      
     }
     else
     {
@@ -72,7 +87,7 @@ char* SerialMessenger::checkForNewMessage(const char endMarker, bool errors = fa
       }
     }
   }
-  return nullptr;
+  return parsed_data;
 }
 
 void SerialMessenger::begin(uint32_t baudRate)
@@ -92,14 +107,13 @@ void setup()
   Serial.begin(9600);
 }
 
+struct btData btMessage;
 
 void loop()
 {
-  if (const char* btMessage = btSerial.checkForNewMessage('&'))
-  {
-    char newMessage[MESSAGE_LENGTH];
-    strcpy(newMessage, btMessage);
-    Serial.println(newMessage);
+  if (btMessage.id != '\0'){
+      Serial.print(btMessage.id);
+      Serial.print(": ");
+      Serial.println(btMessage.value);
   }
-
 }
