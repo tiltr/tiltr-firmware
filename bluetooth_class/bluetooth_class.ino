@@ -21,6 +21,12 @@ class SerialMessenger {
 
 
 struct btData {
+  bool bSensitivity = false, bRoll = false, bPitch = false, bX_position = false;
+  bool isZero;
+  int sensitivity = 0;
+  float roll = 0;
+  float pitch = 0;
+  float x_position = 0.0;
   char id;
   float value;
 };
@@ -41,13 +47,15 @@ struct btData SerialMessenger::parseMessage(char* incommingMessage) {
     ++separator;
     int iPosition = atoi(separator);
     float fPosition = atof(separator);
+
     if (iPosition != 999) {
       parsed_data.id = ID;
       parsed_data.value = fPosition;
     }
 
+  }
+
   return parsed_data;
-  
 }
 
 struct btData SerialMessenger::checkForNewMessage(const char endMarker, bool errors = false)
@@ -59,15 +67,16 @@ struct btData SerialMessenger::checkForNewMessage(const char endMarker, bool err
     if (stream->peek() == '\r')
     {
       (void)stream->read();
-      return parsed_data; 
+      return parsed_data;
     }
     incomingMessage[idx] = stream->read();
     if (incomingMessage[idx] == endMarker)
     {
       incomingMessage[idx] = '\0';
-      idx = 0;      
-      parsed_data = parseMessage(incomingMessage);      
-      return parsed_data;      
+      idx = 0;
+      //Serial.println(incomingMessage);
+      parsed_data = parseMessage(incomingMessage);
+      return parsed_data;
     }
     else
     {
@@ -87,6 +96,7 @@ struct btData SerialMessenger::checkForNewMessage(const char endMarker, bool err
       }
     }
   }
+
   return parsed_data;
 }
 
@@ -111,9 +121,13 @@ struct btData btMessage;
 
 void loop()
 {
-  if (btMessage.id != '\0'){
-      Serial.print(btMessage.id);
-      Serial.print(": ");
-      Serial.println(btMessage.value);
+
+  btMessage = btSerial.checkForNewMessage('&');
+
+  if (btMessage.id != '\0') {
+    Serial.print(btMessage.id);
+    Serial.print(": ");
+    Serial.println(btMessage.value);
   }
+
 }
