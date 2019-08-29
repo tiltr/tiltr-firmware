@@ -18,16 +18,8 @@ class SerialMessenger {
     size_t idx = 0;
 };
 
-
-
 struct btData {
-  bool bSensitivity = false, bRoll = false, bPitch = false, bX_position = false;
-  bool isZero;
-  int sensitivity = 0;
-  float roll = 0;
-  float pitch = 0;
-  float x_position = 0.0;
-  char id;
+  char id = '\0';
   float value;
 };
 
