@@ -2,30 +2,24 @@
 #include "bluetooth.h"
 
 
-
-
 struct btData SerialMessenger::parseMessage(char* incommingMessage) {
   struct btData parsed_data;
 
   // Split the command in two values
   char* separator = strchr(incommingMessage, '=');
 
-  // If we're not at the end of the array?
-  if (separator != 0)
-  {
-    // Actually split the string in 2: replace ':' with 0
-    *separator = 0;
-    char ID = incommingMessage[0];
-    ++separator;
-    int iPosition = atoi(separator);
-    float fPosition = atof(separator);
+  //  if (separator != 0)
+  //  {
+  //    *separator = 0;
+  char ID = incommingMessage[0];
+  ++separator;
+  float value = atof(separator);
 
-    if (iPosition != 999) {
-      parsed_data.id = ID;
-      parsed_data.value = fPosition;
-    }
-
+  if (value != 999) {
+    parsed_data.id = ID;
+    parsed_data.value = value;
   }
+  //}
 
   return parsed_data;
 }

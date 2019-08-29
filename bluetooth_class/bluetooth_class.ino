@@ -4,7 +4,6 @@
 HardwareSerial Serial5(PD2, PC12);
 SerialMessenger btSerial(Serial5);
 
-
 void setup()
 {
   btSerial.begin(57600);

@@ -3,7 +3,6 @@
 
 #include "Arduino.h"
 
-
 #define MESSAGE_LENGTH 64
 
 
@@ -14,7 +13,6 @@ struct btData {
 
 class SerialMessenger {
   public:
-    //SerialMessenger( HardwareSerial& device);
     SerialMessenger( HardwareSerial& device) {
       hwStream = &device;
     }
@@ -29,7 +27,5 @@ class SerialMessenger {
     char incomingMessage[MESSAGE_LENGTH];
     size_t idx = 0;
 };
-
-
 
 #endif
