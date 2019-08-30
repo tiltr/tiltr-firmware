@@ -55,12 +55,7 @@ void setup() {
   // Comms for bluetooth
   btSerial.begin(57600);
 
-
   init_mpu();
-
-
-  // configure LED for output
-
 
   attachInterrupt(digitalPinToInterrupt(left_encoder.hall_B_int), l_hall_a_change, CHANGE);
   attachInterrupt(digitalPinToInterrupt(left_encoder.hall_C_int), l_hall_b_change, CHANGE);
@@ -127,29 +122,19 @@ void loop() {
   print_velocity();
   get_mpu_data();
 
-  //  if (((millis() - timer_2) > 1000) && p_flag) {
-  //    //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
-  //    hoverboard.sendBuzzer(10, 1, 100, PROTOCOL_SOM_NOACK);
-  //    Serial4.println("unlockASCII");
-  //    Serial4.println('P');
-  //    p_flag = false;
-  //  }
-  //
-  //  for (int i = 0; i < 3; i++) {
-  //    Serial.print(get_imu_data(i));
-  //  }
-  //  Serial.println("");
+  if (((millis() - timer_2) > 1000) && p_flag) {
+    //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
+    hoverboard.sendBuzzer(10, 1, 100, PROTOCOL_SOM_NOACK);
+    Serial4.println("unlockASCII");
+    Serial4.println('P');
+    p_flag = false;
+  }
+  
   btMessage = btSerial.checkForNewMessage('&');
 
   if (btMessage.id != '\0') {
     global_ID = btMessage.id;
     global_value = btMessage.value;
-//    Serial.print(btMessage.id);
-//    Serial.print(": ");
-//    Serial.println(btMessage.value);
   }
-
-
-
 
 }
