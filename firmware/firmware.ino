@@ -36,7 +36,7 @@ void r_hall_c_change() {
   right_encoder.hall_c_change();
 }
 
-void ISR_IMU_timer(HardwareTimer*)
+void get_mpu_data()
 {
   float imu_data = get_imu_data(0);
   //Serial.println(imu_data);
@@ -51,25 +51,6 @@ void setup() {
   Serial4.begin(115200);
 
   init_mpu();
-
-#if defined(TIM1)
-  TIM_TypeDef *Instance = TIM1;
-#else
-  TIM_TypeDef *Instance = TIM2;
-#endif
-
-  // Instantiate HardwareTimer object. Thanks to 'new' instanciation, HardwareTimer is not destructed when setup() function is finished.
-  HardwareTimer *MyTim = new HardwareTimer(Instance);
-
-
-  MyTim->setMode(2, TIMER_OUTPUT_COMPARE);  // In our case, channekFalling is configured but not really used. Nevertheless it would be possible to attach a callback to channel compare match.
-  MyTim->setOverflow(400, HERTZ_FORMAT); // 10 Hz
-  MyTim->attachInterrupt(ISR_IMU_timer);
-  MyTim->resume();
-
-
-
-
 
 
   // configure LED for output
@@ -97,8 +78,8 @@ void print_velocity() {
     Serial.print(left_encoder.get_velocity() * 1000);
     Serial.print(" r_velocity = ");
     Serial.print(right_encoder.get_velocity() * 1000);
-    Serial.println(" , angle: ");
-    //Serial.println(get_imu_data(1));
+    Serial.print(" , angle: ");
+    Serial.println(get_imu_data(1));
     timer = millis();
   }
 }
@@ -128,6 +109,7 @@ bool s_flag = false;
 void loop() {
 
   print_velocity();
+  get_mpu_data();
 
 //  if (((millis() - timer_2) > 1000) && p_flag) {
 //    //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
