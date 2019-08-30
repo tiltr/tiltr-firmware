@@ -146,7 +146,7 @@ long timer_2 = millis();
 
 void print_velocity() {
   if (((millis() - timer) > 175)) {
-    
+
     Serial.print("velocity = ");
     Serial.print(left_encoder.get_velocity() * 1000);
     Serial.print(" r_velocity = ");
@@ -191,7 +191,7 @@ void loop() {
     }
     // other program behavior stuff here
 
- //   test_motors(600, 2);
+    //   test_motors(600, 2);
     print_velocity();
 
     if (((millis() - timer_2) > 1000) && p_flag) {
