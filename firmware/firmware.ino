@@ -119,8 +119,14 @@ struct btData btMessage;
 
 void loop() {
 
-  print_velocity();
+  //print_velocity();
   get_mpu_data();
+  Serial.print("0,1,2: ");
+  Serial.print(get_imu_data(0));
+  Serial.print(" ");
+  Serial.print(get_imu_data(1));
+  Serial.print(" ");
+  Serial.println(get_imu_data(2));
 
   if (((millis() - timer_2) > 1000) && p_flag) {
     //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
