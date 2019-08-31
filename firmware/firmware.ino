@@ -19,6 +19,10 @@ int serialWrapper(unsigned char *data, int len) {
 }
 HoverboardAPI hoverboard = HoverboardAPI(serialWrapper);
 
+double Setpoint, Input, Output;
+double Kp = 45, Ki = 5, Kd = 0.9;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
 void l_hall_a_change() {
   left_encoder.hall_a_change();
 }
@@ -67,10 +71,15 @@ void setup() {
 
   pinMode(LED, OUTPUT);
 
+  Setpoint = 169.8;
+  myPID.SetOutputLimits(-300, 300);
+  myPID.SetMode(AUTOMATIC);
+
 }
 bool p_flag = true;
 long timer = millis();
 long timer_2 = millis();
+long imu_startup_timer = 30000;
 
 char global_ID;
 float global_value;
@@ -121,12 +130,26 @@ void loop() {
 
   //print_velocity();
   get_mpu_data();
-  Serial.print("0,1,2: ");
-  Serial.print(get_imu_data(0));
-  Serial.print(" ");
-  Serial.print(get_imu_data(1));
-  Serial.print(" ");
-  Serial.println(get_imu_data(2));
+  Input = get_imu_data(2);
+
+
+  myPID.Compute();
+
+  Serial.print(Input);
+  Serial.print("\t");
+  Serial.println(Output);
+
+  if (millis() < imu_startup_timer) {
+    hoverboard.sendBuzzer(10, 1, 10, PROTOCOL_SOM_NOACK);
+    delay((imu_startup_timer - millis()) / 20);
+    hoverboard.sendBuzzer(8, 1, 40, PROTOCOL_SOM_NOACK);
+    delay((imu_startup_timer - millis()) / 20);
+  }
+
+  if (millis() > imu_startup_timer) {
+    hoverboard.sendPWM((-1)*Output, (-1)*Output, PROTOCOL_SOM_NOACK);
+  }
+
 
   if (((millis() - timer_2) > 1000) && p_flag) {
     //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
@@ -135,7 +158,7 @@ void loop() {
     Serial4.println('P');
     p_flag = false;
   }
-  
+
   btMessage = btSerial.checkForNewMessage('&');
 
   if (btMessage.id != '\0') {
