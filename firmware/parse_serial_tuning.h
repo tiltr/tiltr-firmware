@@ -17,7 +17,7 @@ struct tuningParameters {
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
-  
+
 
   float aOutputMax = 90.0;
   float aOutputMin = -90.0;
@@ -34,16 +34,20 @@ struct tuningParameters {
 
 class serialTuningParser {
   public:
-    serialTuningParser( ); //{//char* serialTuningMessage) {
-//      //initialise ?
+    //   serialTuningParser( HardwareSerial& device) {
+    //      hwStream = &device;
+    //    }
+    serialTuningParser(){};//char* serialTuningMessage) {
+      //initialise ?
 //    }
+    //void begin(uint32_t baudRate);
     void parse_message(const char* serialTuningMessage);
     //void serialTuningParser::parse_message(const char* message) {
-    
+
 
   private:
     void update_parameters(struct tuningParameters parameters);
-    void print_multi(String variable_name, float old_value, float new_value);
+    void print_multi_float(String variable_name, float old_value, float new_value);
     void print_changes();
     struct tuningParameters parameters;
     struct tuningParameters last_parameters;

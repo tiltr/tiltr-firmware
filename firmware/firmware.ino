@@ -1,4 +1,5 @@
 #include "bluetooth.h"
+#include "parse_serial_tuning.h"
 #include <PID_v1.h>
 #include <hall_encoders.h>
 #include <HoverboardAPI.h>
@@ -27,6 +28,7 @@ HoverboardAPI hoverboard = HoverboardAPI(serialWrapper);
 double Setpoint, Input, Output;
 double Kp = 45, Ki = 5, Kd = 0.9;
 //PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
 
 
 void l_hall_a_change() {
@@ -75,267 +77,7 @@ PID PIDp(&pInput, &pOutput, &pSetpoint, pKp, pKi, pKd, DIRECT);
 PID PIDa(&aInput, &aOutput, &aSetpoint, aKp, aKi, aKd, DIRECT);
 
 
-bool stopFlag = false, printTimeFlag = false;
-bool pFlag = false, iFlag = false, dFlag = false;
-int iTune = 99;
-bool printFlag = false, printFlag7 = true, printFlag8 = true;
-bool tuneA = false, tuneP = false;
-bool posLimitUpdate = false;
-void process_data (const char * data)
-{
-  // for now just display it
-  // (but you could compare it to some value, convert to an integer, etc.)
-  Serial3.println (data);
-
-
-  if (posLimitUpdate) {
-    pOutputMax = Serial3.parseFloat();
-    pOutputMin = pOutputMax * (-1);
-    PIDp.SetOutputLimits(pOutputMin, pOutputMax);
-    PIDp.SetMode(AUTOMATIC);
-    Serial3.print("Angle offset allowed is now: ");
-    Serial3.print(pOutputMin);
-    Serial3.print(" to ");
-    Serial3.println(pOutputMax);
-    posLimitUpdate = false;
-  }
-
-  //    if (angleLimitUpdate){
-  //    aOutputMax = Serial3.parseFloat();
-  //    aOutputMin = pOutputMax * (-0.1);
-  //    PIDa.SetOutputLimits(aOutputMin, aOutputMax);
-  //    PIDa.SetMode(AUTOMATIC);
-  //  }
-
-
-
-  if ((iTune != 99) && (tuneA)) {
-    switch (iTune) {
-      case 0:
-        aKp = Serial3.parseFloat();
-        iTune = 99;
-        break;
-      case 1:
-        aKi = Serial3.parseFloat();
-        iTune = 99;
-        break;
-      case 2:
-        aKd = Serial3.parseFloat();
-        iTune = 99;
-        break;
-      case 5:
-        aHome = Serial3.parseFloat();
-        iTune = 99;
-        break;
-    }
-    delay(2);
-    PIDa.SetTunings(aKp, aKi, aKd);
-    Serial3.print("New PID values: Kp = ");
-    Serial3.print(aKp);
-    Serial3.print(" Ki = ");
-    Serial3.print(aKi);
-    Serial3.print(" Kd = ");
-    Serial3.println(aKd);
-    Serial3.print("Setpoint: ");
-    Serial3.println(aHome);
-    tuneA = false;
-  }
-
-  if ((iTune != 99) && (tuneP)) {
-    switch (iTune) {
-      case 0:
-        pKp = Serial3.parseFloat();
-        iTune = 99;
-        break;
-      case 1:
-        pKi = Serial3.parseFloat();
-        iTune = 99;
-        break;
-      case 2:
-        pKd = Serial3.parseFloat();
-        iTune = 99;
-        break;
-      case 5:
-        aHome = Serial3.parseFloat();
-        iTune = 99;
-        break;
-    }
-    delay(2);
-    PIDp.SetTunings(pKp, pKi, pKd);
-    Serial3.print("New PID values: Kp = ");
-    Serial3.print(pKp);
-    Serial3.print(" Ki = ");
-    Serial3.print(pKi);
-    Serial3.print(" Kd = ");
-    Serial3.println(pKd);
-    Serial3.print("Setpoint: ");
-    Serial3.println(aHome);
-    tuneP = false;
-  }
-
-
-  //  if (*data != 'q') {
-  //    printFlag = false;
-  //  }
-
-
-
-
-
-  switch (*data) {
-#ifdef print_help
-    case 'h':
-      Serial3.println("Displaying help");
-      Serial3.println("c = stop");
-      Serial3.println("x = tune posisiton loop");
-      Serial3.println("m = printTimeFlag");
-      Serial3.println("l = show current tuning values (all)");
-      Serial3.println("q = printFlag");
-      Serial3.println("p i & d, next number will tune");
-      Serial3.println("g = go");
-      Serial3.println("t = tune home angle");
-      Serial3.println("e = printFlag7");
-      Serial3.println("v = printFlag8");
-      Serial3.println("[ = pOutput limits");
-      break;
-#endif
-    case 'e':
-      printFlag7 = !printFlag7;
-      iTune = 99;
-      break;
-    case 'v':
-      printFlag8 = !printFlag8;
-      iTune = 99;
-      break;
-    case '#':
-      Serial3.println("Angle loop selected..");
-      tuneA = true;
-      iTune = 99;
-      break;
-    case 'c':
-      stopFlag = true;
-      iTune = 99;
-      break;
-    case 'x':
-      Serial3.println("Position loop selected..");
-      tuneP = true;
-      iTune = 99;
-      break;
-    case 'm':
-      printTimeFlag = !printTimeFlag;
-      iTune = 99;
-      break;
-    case '[':
-      posLimitUpdate = true;
-      iTune = 99;
-      break;
-    case 'l':
-      Serial3.print("Current PID values (angle): Kp = ");
-      Serial3.print(aKp);
-      Serial3.print(" Ki = ");
-      Serial3.print(aKi);
-      Serial3.print(" Kd = ");
-      Serial3.println(aKd);
-      Serial3.print("Current PID values (pos): Kp = ");
-      Serial3.print(pKp);
-      Serial3.print(" Ki = ");
-      Serial3.print(pKi);
-      Serial3.print(" Kd = ");
-      Serial3.println(pKd);
-      Serial3.print("Setpoint: ");
-      Serial3.println(aHome);
-      Serial3.print("Angle offset allowed is now: ");
-      Serial3.print(pOutputMin);
-      Serial3.print(" to ");
-      Serial3.println(pOutputMax);
-      break;
-    case 'q':
-      printFlag = !printFlag;
-      iTune = 99;
-      break;
-    case 'p':
-      pFlag = true;
-      iTune = 0;
-      //Serial3.println (*data);
-      if (tuneA) {
-        Serial3.print("Current PID values (angle): Kp = ");
-        Serial3.print(aKp);
-        Serial3.print(" Ki = ");
-        Serial3.print(aKi);
-        Serial3.print(" Kd = ");
-        Serial3.println(aKd);
-      } else if (tuneP) {
-        Serial3.print("Current PID values (pos): Kp = ");
-        Serial3.print(pKp);
-        Serial3.print(" Ki = ");
-        Serial3.print(pKi);
-        Serial3.print(" Kd = ");
-        Serial3.println(pKd);
-      } else {
-        Serial3.println("Please select tuneA or tuneP");
-      }
-      Serial3.println(" Enter float:");
-      while (Serial3.available () == 0) {}
-      break;
-    case 'i':
-      iFlag = true;
-      iTune = 1;
-
-      if (tuneA) {
-        Serial3.print("Current PID values (angle): Kp = ");
-        Serial3.print(aKp);
-        Serial3.print(" Ki = ");
-        Serial3.print(aKi);
-        Serial3.print(" Kd = ");
-        Serial3.println(aKd);
-      } else if (tuneP) {
-        Serial3.print("Current PID values (pos): Kp = ");
-        Serial3.print(pKp);
-        Serial3.print(" Ki = ");
-        Serial3.print(pKi);
-        Serial3.print(" Kd = ");
-        Serial3.println(pKd);
-      } else {
-        Serial3.println("Please select tuneA or tuneP");
-      }
-      Serial3.println(" Enter float:");
-      break;
-    case 'd':
-      dFlag = true;
-      iTune = 2;
-      if (tuneA) {
-        Serial3.print("Current PID values (angle): Kp = ");
-        Serial3.print(aKp);
-        Serial3.print(" Ki = ");
-        Serial3.print(aKi);
-        Serial3.print(" Kd = ");
-        Serial3.println(aKd);
-      } else if (tuneP) {
-        Serial3.print("Current PID values (pos): Kp = ");
-        Serial3.print(pKp);
-        Serial3.print(" Ki = ");
-        Serial3.print(pKi);
-        Serial3.print(" Kd = ");
-        Serial3.println(pKd);
-      } else {
-        Serial3.println("Please select tuneA or tuneP");
-      }
-      Serial3.println(" Enter float:");
-      break;
-    case 'g':
-      stopFlag = false;
-      iTune = 99;
-      break;
-    case 't':
-      //stopFlag = false;
-      iTune = 5;
-      break;
-
-  }
-
-
-}  // end of process_data
-
+serialTuningParser serialTuner;
 
 
 void setup() {
@@ -370,7 +112,8 @@ void setup() {
 bool p_flag = true;
 long timer = millis();
 long timer_2 = millis();
-long imu_startup_timer = 30000;
+//long imu_startup_timer = 30000;
+long imu_startup_timer = 30;
 
 char global_ID;
 float global_value;
@@ -424,8 +167,12 @@ void loop() {
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
+    Serial3.print("tuningMessage");
     Serial3.println(tuningMessage);
-    process_data(tuningMessage);
+    
+    serialTuner.parse_message(tuningMessage);
+    
+//    process_data(tuningMessage);
   } else {
     //Serial3.println(tuningMessage);
   }
@@ -445,9 +192,9 @@ void loop() {
   }
 
   if (millis() > imu_startup_timer) {
-    if (!stopFlag) {
+//    if (!stopFlag) {
       hoverboard.sendPWM((-1)*Output, (-1)*Output, PROTOCOL_SOM_NOACK);
-    }
+  //  }
   }
 
 

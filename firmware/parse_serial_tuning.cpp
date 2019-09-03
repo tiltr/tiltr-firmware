@@ -1,72 +1,95 @@
 #include "parse_serial_tuning.h"
-/*-----( PID variables )------*/
-//Define Variables we'll be connecting to
-float aHome = 169.8; //after LiPo fitted in the chassis
-double pKp = 7.0 , pKi = 0.0, pKd = 0.01;
-//pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
-double aKp = 45.0, aKi = 5.0, aKd = 0.9;
-
-double aInput, aOutput;
-double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
-double aSetpoint = aHome;
-float aOutputMax = 90.0;
-float aOutputMin = -90.0;
-float pOutputMax = 7.5;
-float pOutputMin = -7.5;
-
-bool stopFlag = false, angleFlag = true, printTimeFlag = false;
-bool pFlag = false, iFlag = false, dFlag = false;
-int iTune = 99;
-bool printFlag = false, printFlag7 = true, printFlag8 = true;
-bool tuneA = false, tuneP = false;
-bool posLimitUpdate = false;
-
-//serialTuningParser::serialTuningParser(){ {//char* serialTuningMessage) {
-//  key_a = '\0';
-//  key_b = '\0';
-//}
 
 
-void serialTuningParser::print_multi(String variable_name, float old_value, float new_value){
-    String prefix = "Old " + variable_name + ": ";
-    Serial.println(prefix);
-    Serial.print("Old aKp: ");
-    Serial.print(parameters.aKp);
-    Serial.print("New aKp: ");
-    Serial.println(parameters.aKp);
+void serialTuningParser::print_multi_float(String variable_name, float old_value, float new_value) {
+  String prefix = "Old " + variable_name + ": ";
+  String midfix = ". New " + variable_name + ": ";
+  Serial3.print(prefix);
+  Serial3.print(old_value);
+  Serial3.print(midfix);
+  Serial3.println(new_value);
 }
 
+
 void serialTuningParser::print_changes() {
+  Serial3.println("serial3printchanges");
   if (last_parameters.aKp != parameters.aKp) {
-    Serial.print("Old aKp: ");
-    Serial.print(parameters.aKp);
-    Serial.print("New aKp: ");
-    Serial.println(parameters.aKp);
+    print_multi_float("aKp", last_parameters.aKp, parameters.aKp);
+    last_parameters.aKp = parameters.aKp;
   }
 
+  if (last_parameters.aKp != parameters.aKp) {
+    print_multi_float("aKp", last_parameters.aKp, parameters.aKp);
+  }
+
+  if (last_parameters.aKp != parameters.aKp) {
+    print_multi_float("aKp", last_parameters.aKp, parameters.aKp);
+  }
+
+  if (last_parameters.aSetpoint != parameters.aSetpoint) {
+    print_multi_float("aKp", last_parameters.aSetpoint, parameters.aSetpoint);
+  }
 
 }
 
 void serialTuningParser::parse_message(const char* message) {
-  struct tuningParameters parameters;
+  //  struct tuningParameters parameters;
+  //Serial3.print("in parse message: ");
+  //Serial3.println(message);
+  char* separator;
 
   // fill key_a and key_b (if needed) variables before continuing
   if (key_a == '\0') {
     key_a = *message;
+    switch (key_a) {
+      case 'a':
+        Serial3.println("Tuning angle, select p i or d");
+        break;
+      default:
+        Serial3.print("Key_a: ");
+        Serial3.println(key_a);
+        break;
+    }
     return;
   } else if ((key_b == '\0') && (key_a != 's' || key_a != 'g' || key_a != 'h' || key_a != '#')) {
-    key_b = *message;
-    return;
+
+
+    // Split the command in two values
+    char* separator = strchr(message, '=');
+
+    //  if (separator != 0)
+    //  {
+    //    *separator = 0;
+    char ID = message[0];
+    key_b = ID;
+    Serial3.print("Key_b: ");
+    Serial3.println(key_b);
+    ++separator;
+    //return;
   }
+
+
+  Serial3.print("Key_a: ");
+  Serial3.print(key_a);
+  Serial3.print(" Key_b: ");
+  Serial3.println(key_b);
+
 
   // outer state machine
   switch (key_a) {
     case 'a':
       // inner state machine
       switch (key_b) {
-        case 'p':
-          parameters.aKp = Serial3.parseFloat();
+        case 'p':{
+          float value = atof(separator);
+          Serial3.print("val: ");
+          Serial3.println(value);
+          parameters.aKp = value;
+          Serial3.println(parameters.aKp);
+          //parameters.aKp = Serial3.parseFloat();          
+          //Serial3.println(parameters.aKp);
           break;
+        }
         case 'i':
           parameters.aKi = Serial3.parseFloat();
           break;
@@ -75,6 +98,7 @@ void serialTuningParser::parse_message(const char* message) {
           break;
         default:
           break;
+        
       }
       break;
     case '#':
@@ -88,6 +112,9 @@ void serialTuningParser::parse_message(const char* message) {
       break;
   }
 
+  print_changes();
+  last_parameters = parameters;
   key_a = '\0';
   key_b = '\0';
+
 }
