@@ -10,26 +10,55 @@ void serialTuningParser::print_multi_float(String variable_name, float old_value
   Serial3.println(new_value);
 }
 
+void serialTuningParser::print_multi_bool(String variable_name, bool old_value, bool new_value) {
+  String prefix = "Old " + variable_name + ": ";
+  String midfix = ". New " + variable_name + ": ";
+  String str = "Old " + variable_name + ": " +  old_value + ". Now: " + new_value;
+  Serial3.print(prefix);
+  Serial3.print(old_value);
+  Serial3.print(midfix);
+  Serial3.println(new_value);
+}
+
+void serialTuningParser::print_all() {
+  String setpoint = "s - setpoint: ";
+  String akp = "p - aKp: ";
+  String aki = "i - aKi: ";
+  String akd = "d - aKd: ";
+  Serial3.print(setpoint);
+  Serial3.println(parameters.aSetpoint);
+
+  Serial3.print(akp);
+  Serial3.println(parameters.aKp);
+
+  Serial3.print(aki);
+  Serial3.println(parameters.aKi);
+
+  Serial3.print(akd);
+  Serial3.println(parameters.aKd);
+}
 
 void serialTuningParser::print_changes() {
-  Serial3.println("serial3printchanges");
-  if (last_parameters.aKp != parameters.aKp) {
-    print_multi_float("aKp", last_parameters.aKp, parameters.aKp);
-    last_parameters.aKp = parameters.aKp;
-  }
-
   if (last_parameters.aKp != parameters.aKp) {
     print_multi_float("aKp", last_parameters.aKp, parameters.aKp);
   }
 
-  if (last_parameters.aKp != parameters.aKp) {
-    print_multi_float("aKp", last_parameters.aKp, parameters.aKp);
+  if (last_parameters.aKi != parameters.aKi) {
+    print_multi_float("aKi", last_parameters.aKi, parameters.aKi);
+  }
+
+  if (last_parameters.aKd != parameters.aKd) {
+    print_multi_float("aKd", last_parameters.aKd, parameters.aKd);
   }
 
   if (last_parameters.aSetpoint != parameters.aSetpoint) {
-    print_multi_float("aKp", last_parameters.aSetpoint, parameters.aSetpoint);
+    print_multi_float("setpoint", last_parameters.aSetpoint, parameters.aSetpoint);
   }
 
+  if (last_parameters.enable_motors != parameters.enable_motors) {
+    print_multi_bool("Enable:", last_parameters.enable_motors, parameters.enable_motors);
+  }
+  last_parameters.aKp = parameters.aKp;
 }
 
 void serialTuningParser::parse_message(const char* message) {
@@ -37,6 +66,7 @@ void serialTuningParser::parse_message(const char* message) {
   //Serial3.print("in parse message: ");
   //Serial3.println(message);
   char* separator;
+  float value;
 
   // fill key_a and key_b (if needed) variables before continuing
   if (key_a == '\0') {
@@ -45,27 +75,27 @@ void serialTuningParser::parse_message(const char* message) {
       case 'a':
         Serial3.println("Tuning angle, select p i or d");
         break;
+      case 's':
+        Serial3.print("Tuning setpoint. e.g. s=167.5");
+        break;
+      case 'p':
+        print_all();
+        key_a = '\0';
+        key_b = '\0';
+        break;
       default:
-        Serial3.print("Key_a: ");
-        Serial3.println(key_a);
         break;
     }
     return;
-  } else if ((key_b == '\0') && (key_a != 's' || key_a != 'g' || key_a != 'h' || key_a != '#')) {
+  } else if ((key_a == 's') || ((key_b == '\0') && (key_a != 's' || key_a != 'g' || key_a != 'h' || key_a != '#'))) {
 
-
-    // Split the command in two values
     char* separator = strchr(message, '=');
-
-    //  if (separator != 0)
-    //  {
-    //    *separator = 0;
     char ID = message[0];
     key_b = ID;
-    Serial3.print("Key_b: ");
-    Serial3.println(key_b);
     ++separator;
-    //return;
+    value = atof(separator);
+    Serial3.print("val: ");
+    Serial3.println(value);    
   }
 
 
@@ -80,34 +110,28 @@ void serialTuningParser::parse_message(const char* message) {
     case 'a':
       // inner state machine
       switch (key_b) {
-        case 'p':{
-          float value = atof(separator);
-          Serial3.print("val: ");
-          Serial3.println(value);
+        case 'p':
           parameters.aKp = value;
-          Serial3.println(parameters.aKp);
-          //parameters.aKp = Serial3.parseFloat();          
-          //Serial3.println(parameters.aKp);
+          PIDa.SetTunings(parameters.aKp , parameters.aKi, parameters.aKd);
           break;
-        }
         case 'i':
-          parameters.aKi = Serial3.parseFloat();
+          parameters.aKi = value;
           break;
         case 'd':
-          parameters.aKd = Serial3.parseFloat();
+          parameters.aKd = value;
           break;
         default:
           break;
-        
+
       }
       break;
-    case '#':
-      parameters.aSetpoint = Serial3.parseFloat();
+    case 's':
+      parameters.aSetpoint = value;
       break;
     case 'g':
       parameters.enable_motors = true;
       break;
-    case 's':
+    case 'c':
       parameters.enable_motors = false;
       break;
   }

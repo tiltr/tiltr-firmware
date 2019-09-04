@@ -166,10 +166,9 @@ void loop() {
   Input = get_imu_data(2);
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
-  if (tuningMessage != "xx") {
-    Serial3.print("tuningMessage");
+  if (tuningMessage != "xx") {    
     Serial3.println(tuningMessage);
-    
+   
     serialTuner.parse_message(tuningMessage);
     
 //    process_data(tuningMessage);

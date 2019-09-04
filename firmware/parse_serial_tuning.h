@@ -48,6 +48,8 @@ class serialTuningParser {
   private:
     void update_parameters(struct tuningParameters parameters);
     void print_multi_float(String variable_name, float old_value, float new_value);
+    void print_multi_bool(String variable_name, bool old_value, bool new_value);
+    void print_all();
     void print_changes();
     struct tuningParameters parameters;
     struct tuningParameters last_parameters;
