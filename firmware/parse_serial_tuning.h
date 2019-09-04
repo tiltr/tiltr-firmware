@@ -28,30 +28,37 @@ struct tuningParameters {
   int iTune = 99;
   bool tuneA = false, tuneP = false;
   bool posLimitUpdate = false;
+  bool updateAnglePID = false;
+  bool printFlag = false;
+  bool printIMU = false;
 
 };
 
 
+
 class serialTuningParser {
   public:
-    //   serialTuningParser( HardwareSerial& device) {
+    //    serialTuningParser(PID& PIDa) {
+    //      pid_A = &PIDa;
+    //      pid_P = &PIDp;
+    //    }
+    //    //   serialTuningParser( HardwareSerial& device) {
     //      hwStream = &device;
     //    }
-    serialTuningParser(){};//char* serialTuningMessage) {
-      //initialise ?
-//    }
+    serialTuningParser() {}; //char* serialTuningMessage) {
+    //initialise ?
+    //    }
     //void begin(uint32_t baudRate);
     void parse_message(const char* serialTuningMessage);
     //void serialTuningParser::parse_message(const char* message) {
 
-
+    struct tuningParameters parameters;
   private:
     void update_parameters(struct tuningParameters parameters);
     void print_multi_float(String variable_name, float old_value, float new_value);
     void print_multi_bool(String variable_name, bool old_value, bool new_value);
     void print_all();
     void print_changes();
-    struct tuningParameters parameters;
     struct tuningParameters last_parameters;
     char key_a = '\0';
     char key_b = '\0';

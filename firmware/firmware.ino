@@ -73,11 +73,13 @@ float aOutputMin = -90.0;
 float pOutputMax = 7.5;
 float pOutputMin = -7.5;
 
-PID PIDp(&pInput, &pOutput, &pSetpoint, pKp, pKi, pKd, DIRECT);
-PID PIDa(&aInput, &aOutput, &aSetpoint, aKp, aKi, aKd, DIRECT);
-
-
 serialTuningParser serialTuner;
+
+
+PID PIDp(&pInput, &pOutput, &pSetpoint, pKp, pKi, pKd, DIRECT);
+PID PIDa(&aInput, &aOutput, &aSetpoint, serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd, DIRECT);
+
+
 
 
 void setup() {
@@ -157,21 +159,39 @@ void test_motors(int upto, int loop_delay) {
 }
 bool s_flag = false;
 
+void apply_tunings() {
+  if (serialTuner.parameters.updateAnglePID) {
+    PIDa.SetTunings(serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd);
+    serialTuner.parameters.updateAnglePID = false;
+    Serial3.println("Pid gains updated");
+  }
+  if (aSetpoint != serialTuner.parameters.aSetpoint) {
+    aSetpoint = serialTuner.parameters.aSetpoint;
+  }
+  if (serialTuner.parameters.printFlag) {
+    Serial3.print("current angle: ");
+    Serial3.println(aInput);
+  }
+  serialTuner.parameters.printFlag = false;
+
+}
+
 struct btData btMessage;
 
 void loop() {
 
   //print_velocity();
   get_mpu_data();
-  Input = get_imu_data(2);
+  aInput = get_imu_data(2);
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
-  if (tuningMessage != "xx") {    
+  if (tuningMessage != "xx") {
     Serial3.println(tuningMessage);
-   
+
     serialTuner.parse_message(tuningMessage);
-    
-//    process_data(tuningMessage);
+    apply_tunings();
+
+    //    process_data(tuningMessage);
   } else {
     //Serial3.println(tuningMessage);
   }
@@ -179,9 +199,11 @@ void loop() {
 
   PIDa.Compute();
 
-  Serial.print(Input);
-  Serial.print("\t");
-  Serial.println(Output);
+  if (serialTuner.parameters.printIMU) {
+    Serial3.print(aInput);
+    Serial3.print("\t");
+    Serial3.println(aOutput);
+  }
 
   if (millis() < imu_startup_timer) {
     hoverboard.sendBuzzer(10, 1, 10, PROTOCOL_SOM_NOACK);
@@ -191,9 +213,9 @@ void loop() {
   }
 
   if (millis() > imu_startup_timer) {
-//    if (!stopFlag) {
-      hoverboard.sendPWM((-1)*Output, (-1)*Output, PROTOCOL_SOM_NOACK);
-  //  }
+    //    if (!stopFlag) {
+    hoverboard.sendPWM((-1)*Output, (-1)*Output, PROTOCOL_SOM_NOACK);
+    //  }
   }
 
 

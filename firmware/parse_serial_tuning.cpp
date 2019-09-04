@@ -36,6 +36,7 @@ void serialTuningParser::print_all() {
 
   Serial3.print(akd);
   Serial3.println(parameters.aKd);
+  parameters.printFlag = true;
 }
 
 void serialTuningParser::print_changes() {
@@ -83,6 +84,11 @@ void serialTuningParser::parse_message(const char* message) {
         key_a = '\0';
         key_b = '\0';
         break;
+      case 'o':
+        parameters.printIMU = !parameters.printIMU;
+        key_a = '\0';
+        key_b = '\0';
+        break;
       default:
         break;
     }
@@ -95,7 +101,7 @@ void serialTuningParser::parse_message(const char* message) {
     ++separator;
     value = atof(separator);
     Serial3.print("val: ");
-    Serial3.println(value);    
+    Serial3.println(value);
   }
 
 
@@ -112,13 +118,15 @@ void serialTuningParser::parse_message(const char* message) {
       switch (key_b) {
         case 'p':
           parameters.aKp = value;
-          PIDa.SetTunings(parameters.aKp , parameters.aKi, parameters.aKd);
+          parameters.updateAnglePID = true;
           break;
         case 'i':
           parameters.aKi = value;
+          parameters.updateAnglePID = true;
           break;
         case 'd':
           parameters.aKd = value;
+          parameters.updateAnglePID = true;
           break;
         default:
           break;
