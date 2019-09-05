@@ -23,6 +23,8 @@ struct tuningParameters {
   float aOutputMin = -90.0;
   float pOutputMax = 7.5;
   float pOutputMin = -7.5;
+  float steering_gain = 0.0;
+  
 
   bool enable_motors = false;
   int iTune = 99;
@@ -31,6 +33,13 @@ struct tuningParameters {
   bool updateAnglePID = false;
   bool printFlag = false;
   bool printIMU = true;
+
+  bool forward = false;
+  bool backward = false;
+  bool left = false;
+  bool right = false;
+  
+  bool drive_mode_active = false;
 
 };
 

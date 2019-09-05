@@ -114,8 +114,8 @@ void setup() {
 bool p_flag = true;
 long timer = millis();
 long timer_2 = millis();
-long imu_startup_timer = 30000;
-//long imu_startup_timer = 30;
+//long imu_startup_timer = 30000;
+long imu_startup_timer = 30;
 
 char global_ID;
 float global_value;
@@ -190,6 +190,16 @@ void loop() {
 
     serialTuner.parse_message(tuningMessage);
     apply_tunings();
+    if (serialTuner.parameters.drive_mode_active) {
+      if (serialTuner.parameters.forward) {
+        aSetpoint = (serialTuner.parameters.aSetpoint + serialTuner.parameters.steering_gain);
+      } else if (serialTuner.parameters.forward) {
+        aSetpoint = (serialTuner.parameters.aSetpoint - serialTuner.parameters.steering_gain);
+      } else {
+        aSetpoint = serialTuner.parameters.aSetpoint;
+      }
+    }
+
 
     //    process_data(tuningMessage);
   } else {
@@ -226,12 +236,12 @@ void loop() {
     Serial4.println('P');
     p_flag = false;
   }
-//
-//  btMessage = btSerial.checkForNewMessage('&');
-//
-//  if (btMessage.id != '\0') {
-//    global_ID = btMessage.id;
-//    global_value = btMessage.value;
-//  }
+  //
+  //  btMessage = btSerial.checkForNewMessage('&');
+  //
+  //  if (btMessage.id != '\0') {
+  //    global_ID = btMessage.id;
+  //    global_value = btMessage.value;
+  //  }
 
 }

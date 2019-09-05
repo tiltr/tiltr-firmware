@@ -25,6 +25,7 @@ void serialTuningParser::print_all() {
   String akp = "p - aKp: ";
   String aki = "i - aKi: ";
   String akd = "d - aKd: ";
+  String steering_gain = "Steering gain: ";
   Serial5.print(setpoint);
   Serial5.println(parameters.aSetpoint);
 
@@ -36,6 +37,10 @@ void serialTuningParser::print_all() {
 
   Serial5.print(akd);
   Serial5.println(parameters.aKd);
+  
+  Serial5.print(steering_gain );
+  Serial5.println(parameters.steering_gain );
+  
   parameters.printFlag = true;
 }
 
@@ -59,7 +64,11 @@ void serialTuningParser::print_changes() {
   if (last_parameters.enable_motors != parameters.enable_motors) {
     print_multi_bool("Enable:", last_parameters.enable_motors, parameters.enable_motors);
   }
+  if (last_parameters.steering_gain != parameters.steering_gain) {
+    print_multi_float("Steeting gain:", last_parameters.steering_gain, parameters.steering_gain);
+  }
   last_parameters.aKp = parameters.aKp;
+  last_parameters = parameters;
 }
 
 void serialTuningParser::parse_message(const char* message) {
@@ -78,6 +87,9 @@ void serialTuningParser::parse_message(const char* message) {
         break;
       case 's':
         Serial5.print("Tuning setpoint. e.g. s=167.5");
+        break;
+      case 'd':
+        Serial5.print("Drive mode active! Press q to quit");
         break;
       case 'p':
         print_all();
@@ -142,6 +154,7 @@ void serialTuningParser::parse_message(const char* message) {
           parameters.aKd = value;
           parameters.updateAnglePID = true;
           break;
+
         default:
           break;
 
@@ -149,6 +162,39 @@ void serialTuningParser::parse_message(const char* message) {
       break;
     case 's':
       parameters.aSetpoint = value;
+      break;
+    case 'd':
+      parameters.drive_mode_active = true;
+      switch (key_b) {
+        case 'w':
+          parameters.forward = true;
+          break;
+        case 's':
+          parameters.backward = true;
+          break;
+        case 'a':
+          parameters.left = true;
+          break;
+        case 'd':
+          parameters.right = true;
+          break;
+        case 'r':
+          parameters.steering_gain += 0.1;
+          break;
+        case 'f':
+          parameters.steering_gain -= 0.1;
+          break;
+        case 'q':
+          parameters.drive_mode_active = false;
+          Serial5.print("Drive mode disabled.");
+          key_a = '\0';          
+          break;
+        default:
+          break;
+      }
+      print_changes();
+      key_b = '\0';
+      return;
       break;
 
   }
