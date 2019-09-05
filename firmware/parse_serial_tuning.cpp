@@ -4,20 +4,20 @@
 void serialTuningParser::print_multi_float(String variable_name, float old_value, float new_value) {
   String prefix = "Old " + variable_name + ": ";
   String midfix = ". New " + variable_name + ": ";
-  Serial3.print(prefix);
-  Serial3.print(old_value);
-  Serial3.print(midfix);
-  Serial3.println(new_value);
+  Serial5.print(prefix);
+  Serial5.print(old_value);
+  Serial5.print(midfix);
+  Serial5.println(new_value);
 }
 
 void serialTuningParser::print_multi_bool(String variable_name, bool old_value, bool new_value) {
   String prefix = "Old " + variable_name + ": ";
   String midfix = ". New " + variable_name + ": ";
   String str = "Old " + variable_name + ": " +  old_value + ". Now: " + new_value;
-  Serial3.print(prefix);
-  Serial3.print(old_value);
-  Serial3.print(midfix);
-  Serial3.println(new_value);
+  Serial5.print(prefix);
+  Serial5.print(old_value);
+  Serial5.print(midfix);
+  Serial5.println(new_value);
 }
 
 void serialTuningParser::print_all() {
@@ -25,17 +25,17 @@ void serialTuningParser::print_all() {
   String akp = "p - aKp: ";
   String aki = "i - aKi: ";
   String akd = "d - aKd: ";
-  Serial3.print(setpoint);
-  Serial3.println(parameters.aSetpoint);
+  Serial5.print(setpoint);
+  Serial5.println(parameters.aSetpoint);
 
-  Serial3.print(akp);
-  Serial3.println(parameters.aKp);
+  Serial5.print(akp);
+  Serial5.println(parameters.aKp);
 
-  Serial3.print(aki);
-  Serial3.println(parameters.aKi);
+  Serial5.print(aki);
+  Serial5.println(parameters.aKi);
 
-  Serial3.print(akd);
-  Serial3.println(parameters.aKd);
+  Serial5.print(akd);
+  Serial5.println(parameters.aKd);
   parameters.printFlag = true;
 }
 
@@ -64,8 +64,8 @@ void serialTuningParser::print_changes() {
 
 void serialTuningParser::parse_message(const char* message) {
   //  struct tuningParameters parameters;
-  //Serial3.print("in parse message: ");
-  //Serial3.println(message);
+  //Serial5.print("in parse message: ");
+  //Serial5.println(message);
   char* separator;
   float value;
 
@@ -74,10 +74,10 @@ void serialTuningParser::parse_message(const char* message) {
     key_a = *message;
     switch (key_a) {
       case 'a':
-        Serial3.println("Tuning angle, select p i or d");
+        Serial5.println("Tuning angle, select p i or d");
         break;
       case 's':
-        Serial3.print("Tuning setpoint. e.g. s=167.5");
+        Serial5.print("Tuning setpoint. e.g. s=167.5");
         break;
       case 'p':
         print_all();
@@ -86,6 +86,20 @@ void serialTuningParser::parse_message(const char* message) {
         break;
       case 'o':
         parameters.printIMU = !parameters.printIMU;
+        key_a = '\0';
+        key_b = '\0';
+        break;
+      case 'g':
+        parameters.enable_motors = true;
+        print_changes();
+        last_parameters = parameters;
+        key_a = '\0';
+        key_b = '\0';
+        break;
+      case 'c':
+        parameters.enable_motors = false;
+        print_changes();
+        last_parameters = parameters;
         key_a = '\0';
         key_b = '\0';
         break;
@@ -100,15 +114,15 @@ void serialTuningParser::parse_message(const char* message) {
     key_b = ID;
     ++separator;
     value = atof(separator);
-    Serial3.print("val: ");
-    Serial3.println(value);
+    Serial5.print("val: ");
+    Serial5.println(value);
   }
 
 
-  Serial3.print("Key_a: ");
-  Serial3.print(key_a);
-  Serial3.print(" Key_b: ");
-  Serial3.println(key_b);
+  Serial5.print("Key_a: ");
+  Serial5.print(key_a);
+  Serial5.print(" Key_b: ");
+  Serial5.println(key_b);
 
 
   // outer state machine
@@ -136,12 +150,7 @@ void serialTuningParser::parse_message(const char* message) {
     case 's':
       parameters.aSetpoint = value;
       break;
-    case 'g':
-      parameters.enable_motors = true;
-      break;
-    case 'c':
-      parameters.enable_motors = false;
-      break;
+
   }
 
   print_changes();

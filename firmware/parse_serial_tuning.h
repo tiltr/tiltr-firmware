@@ -30,7 +30,7 @@ struct tuningParameters {
   bool posLimitUpdate = false;
   bool updateAnglePID = false;
   bool printFlag = false;
-  bool printIMU = false;
+  bool printIMU = true;
 
 };
 

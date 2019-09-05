@@ -114,8 +114,8 @@ void setup() {
 bool p_flag = true;
 long timer = millis();
 long timer_2 = millis();
-//long imu_startup_timer = 30000;
-long imu_startup_timer = 30;
+long imu_startup_timer = 30000;
+//long imu_startup_timer = 30;
 
 char global_ID;
 float global_value;
@@ -163,14 +163,14 @@ void apply_tunings() {
   if (serialTuner.parameters.updateAnglePID) {
     PIDa.SetTunings(serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd);
     serialTuner.parameters.updateAnglePID = false;
-    Serial3.println("Pid gains updated");
+    Serial5.println("Pid gains updated");
   }
   if (aSetpoint != serialTuner.parameters.aSetpoint) {
     aSetpoint = serialTuner.parameters.aSetpoint;
   }
   if (serialTuner.parameters.printFlag) {
-    Serial3.print("current angle: ");
-    Serial3.println(aInput);
+    Serial5.print("current angle: ");
+    Serial5.println(aInput);
   }
   serialTuner.parameters.printFlag = false;
 
@@ -184,9 +184,9 @@ void loop() {
   get_mpu_data();
   aInput = get_imu_data(2);
 
-  char* tuningMessage = tuningSerial.returnNewMessage('\n');
+  char* tuningMessage = btSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
-    Serial3.println(tuningMessage);
+    Serial5.println(tuningMessage);
 
     serialTuner.parse_message(tuningMessage);
     apply_tunings();
@@ -200,9 +200,9 @@ void loop() {
   PIDa.Compute();
 
   if (serialTuner.parameters.printIMU) {
-    Serial3.print(aInput);
-    Serial3.print("\t");
-    Serial3.println(aOutput);
+    Serial5.print(aInput);
+    Serial5.print("\t");
+    Serial5.println(aOutput);
   }
 
   if (millis() < imu_startup_timer) {
@@ -213,9 +213,9 @@ void loop() {
   }
 
   if (millis() > imu_startup_timer) {
-    //    if (!stopFlag) {
-    hoverboard.sendPWM((-1)*Output, (-1)*Output, PROTOCOL_SOM_NOACK);
-    //  }
+    if (!serialTuner.parameters.enable_motors) {
+      hoverboard.sendPWM((-1)*Output, (-1)*Output, PROTOCOL_SOM_NOACK);
+    }
   }
 
 
@@ -226,12 +226,12 @@ void loop() {
     Serial4.println('P');
     p_flag = false;
   }
-
-  btMessage = btSerial.checkForNewMessage('&');
-
-  if (btMessage.id != '\0') {
-    global_ID = btMessage.id;
-    global_value = btMessage.value;
-  }
+//
+//  btMessage = btSerial.checkForNewMessage('&');
+//
+//  if (btMessage.id != '\0') {
+//    global_ID = btMessage.id;
+//    global_value = btMessage.value;
+//  }
 
 }
