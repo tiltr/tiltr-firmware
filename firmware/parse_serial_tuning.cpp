@@ -21,13 +21,20 @@ void serialTuningParser::print_multi_bool(String variable_name, bool old_value, 
 }
 
 void serialTuningParser::print_all() {
-  String setpoint = "s - setpoint: ";
+  String asetpoint = "s - aSetpoint: ";
   String akp = "p - aKp: ";
   String aki = "i - aKi: ";
   String akd = "d - aKd: ";
   String steering_gain = "Steering gain: ";
-  Serial5.print(setpoint);
-  Serial5.println(parameters.aSetpoint);
+  String pkp = "p - pKp: ";
+  String pki = "i - pKi: ";
+  String pkd = "d - pKd: ";
+  String psetpoint = "s - pSetpoint: ";
+  String poutputlimit = "o - pOutputMax/Min: +";
+  Serial5.print(asetpoint);
+  Serial5.print(parameters.aSetpoint);
+  Serial5.print(" +/- ");
+  Serial5.println(parameters.steering_gain);
 
   Serial5.print(akp);
   Serial5.println(parameters.aKp);
@@ -37,10 +44,35 @@ void serialTuningParser::print_all() {
 
   Serial5.print(akd);
   Serial5.println(parameters.aKd);
-  
+
   Serial5.print(steering_gain );
   Serial5.println(parameters.steering_gain );
+
+  Serial5.print(pkp);
+  Serial5.println(parameters.pKp);
+
+  Serial5.print(pki);
+  Serial5.println(parameters.pKi);
+
+  Serial5.print(pkd);
+  Serial5.println(parameters.pKd);
+
+  Serial5.print("Position mode ");
+  String positionMode = parameters.positionModeEnable ? "enabled" : "disabled";
+  Serial5.println(positionMode);
+
+  Serial5.print("Motors ");
+  String motors = parameters.positionModeEnable ? "enabled" : "disabled";
+  Serial5.println(motors);
   
+  Serial5.print(psetpoint);
+  Serial5.println(parameters.pSetpoint);
+
+  Serial5.print(poutputlimit);
+  Serial5.print(parameters.pOutputMax);
+  Serial5.print(", ");
+  Serial5.println(parameters.pOutputMin);
+
   parameters.printFlag = true;
 }
 
@@ -57,17 +89,46 @@ void serialTuningParser::print_changes() {
     print_multi_float("aKd", last_parameters.aKd, parameters.aKd);
   }
 
+  if (last_parameters.pKp != parameters.pKp) {
+    print_multi_float("pKp", last_parameters.pKp, parameters.pKp);
+  }
+
+  if (last_parameters.pKi != parameters.pKi) {
+    print_multi_float("pKi", last_parameters.pKi, parameters.pKi);
+  }
+
+  if (last_parameters.pKd != parameters.pKd) {
+    print_multi_float("pKd", last_parameters.pKd, parameters.pKd);
+  }
+
   if (last_parameters.aSetpoint != parameters.aSetpoint) {
-    print_multi_float("setpoint", last_parameters.aSetpoint, parameters.aSetpoint);
+    print_multi_float("aSetpoint", last_parameters.aSetpoint, parameters.aSetpoint);
+  }
+
+  if (last_parameters.pSetpoint != parameters.pSetpoint) {
+    print_multi_float("pSetpoint", last_parameters.pSetpoint, parameters.pSetpoint);
   }
 
   if (last_parameters.enable_motors != parameters.enable_motors) {
     print_multi_bool("Enable:", last_parameters.enable_motors, parameters.enable_motors);
   }
+
   if (last_parameters.steering_gain != parameters.steering_gain) {
     print_multi_float("Steeting gain:", last_parameters.steering_gain, parameters.steering_gain);
   }
-  last_parameters.aKp = parameters.aKp;
+
+  if (last_parameters.positionModeEnable != parameters.positionModeEnable) {
+    print_multi_bool("Position loop enable:", last_parameters.positionModeEnable, parameters.positionModeEnable);
+  }
+
+  if (last_parameters.pOutputMax != parameters.pOutputMax) {
+    print_multi_float("Max angle from pOut:", last_parameters.pOutputMax, parameters.pOutputMax);
+  } if (last_parameters.pOutputMin != parameters.pOutputMin) {
+    print_multi_float("Min angle from pOut:", last_parameters.pOutputMin, parameters.pOutputMin);
+  }
+
+
+  //last_parameters.aKp = parameters.aKp;
   last_parameters = parameters;
 }
 
@@ -84,6 +145,9 @@ void serialTuningParser::parse_message(const char* message) {
     switch (key_a) {
       case 'a':
         Serial5.println("Tuning angle, select p i or d");
+        break;
+      case 'v':
+        Serial5.println("Tuning position, select p i or d");
         break;
       case 's':
         Serial5.print("Tuning setpoint. e.g. s=167.5");
@@ -154,17 +218,51 @@ void serialTuningParser::parse_message(const char* message) {
           parameters.aKd = value;
           parameters.updateAnglePID = true;
           break;
-
+        case 's':
+          parameters.aSetpoint = value;
+          break;
         default:
           break;
 
       }
       break;
-    case 's':
-      parameters.aSetpoint = value;
+    case 'v':
+      // inner state machine
+      switch (key_b) {
+        case 'p':
+          parameters.pKp = value;
+          parameters.updatePositionPID = true;
+          break;
+        case 'i':
+          parameters.pKi = value;
+          parameters.updatePositionPID = true;
+          break;
+        case 'd':
+          parameters.pKd = value;
+          parameters.updatePositionPID = true;
+          break;
+        case 'e':
+          parameters.positionModeEnable = !parameters.positionModeEnable;
+          break;
+        case 's':
+          parameters.pSetpoint = value;
+          break;
+        case 'o':
+          parameters.pOutputLimitChanged = true;
+          parameters.pOutputMax = value;
+          parameters.pOutputMin = value * (-1.0);
+          break;
+        default:
+          break;
+
+      }
       break;
     case 'd':
       parameters.drive_mode_active = true;
+      parameters.forward = false;
+      parameters.backward = false;
+      parameters.left = false;
+      parameters.right = false;
       switch (key_b) {
         case 'w':
           parameters.forward = true;
@@ -184,10 +282,13 @@ void serialTuningParser::parse_message(const char* message) {
         case 'f':
           parameters.steering_gain -= 0.1;
           break;
+        case 'z':
+          parameters.steering_gain = 0.0;
+          break;
         case 'q':
           parameters.drive_mode_active = false;
           Serial5.print("Drive mode disabled.");
-          key_a = '\0';          
+          key_a = '\0';
           break;
         default:
           break;

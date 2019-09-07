@@ -3,7 +3,8 @@
 
 #include "Arduino.h"
 
-#define INITIAL_HOME_ANGLE 169.8 // degrees
+//#define INITIAL_HOME_ANGLE 165.32 // degrees
+#define INITIAL_HOME_ANGLE 164.7 // degrees
 
 
 struct tuningParameters {
@@ -11,9 +12,10 @@ struct tuningParameters {
   float aHome = INITIAL_HOME_ANGLE;
   //double aKp, aKi, aKd;
   //double pKp, pKi, pKd;
-  double pKp = 7.0 , pKi = 0.0, pKd = 0.01;
+  double pKp = 20.0 , pKi = 0.0, pKd = 0.01;
   //pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
-  double aKp = 45.0, aKi = 5.0, aKd = 0.9;
+  //double aKp = 45.0, aKi = 5.0, aKd = 0.9;
+  double aKp = 45.0, aKi = 0.0, aKd = 0.5;
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
@@ -21,9 +23,11 @@ struct tuningParameters {
 
   float aOutputMax = 90.0;
   float aOutputMin = -90.0;
-  float pOutputMax = 7.5;
-  float pOutputMin = -7.5;
+  float pOutputMax = 5;
+  float pOutputMin = -5;
   float steering_gain = 0.0;
+
+  bool pOutputLimitChanged = false;
   
 
   bool enable_motors = false;
@@ -31,9 +35,11 @@ struct tuningParameters {
   bool tuneA = false, tuneP = false;
   bool posLimitUpdate = false;
   bool updateAnglePID = false;
+  bool updatePositionPID = false;
   bool printFlag = false;
   bool printIMU = true;
 
+  bool positionModeEnable = true;
   bool forward = false;
   bool backward = false;
   bool left = false;
