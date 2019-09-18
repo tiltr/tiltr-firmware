@@ -29,6 +29,10 @@ double Setpoint, Input, Output;
 double Kp = 45, Ki = 5, Kd = 0.9;
 //PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
+int hoverboardDeadzone = 0;//40;
+int aOutputOffset = hoverboardDeadzone;
+
+
 
 
 void l_hall_a_change() {
@@ -111,7 +115,7 @@ void setup() {
 
 
   //Setpoint = 169.8;
-  PIDa.SetOutputLimits(-300, 300);
+  PIDa.SetOutputLimits(-100, 100);
   PIDa.SetMode(AUTOMATIC);
 
   PIDp.SetOutputLimits(serialTuner.parameters.pOutputMin, serialTuner.parameters.pOutputMax);
@@ -143,23 +147,23 @@ void print_velocity() {
     timer = millis();
   }
 }
-void test_motors(int upto, int loop_delay) {
-  for (int i = 0; i < upto; i++) {
+void test_motors(int from, int upto, int loop_delay) {
+  for (int i = from; i < upto; i++) {
     hoverboard.sendPWM(i, (-1)*i, PROTOCOL_SOM_NOACK);
     delay(loop_delay);
     print_velocity();
   }
-  for (int i = upto; i > 0; i--) {
+  for (int i = upto; i > from; i--) {
     hoverboard.sendPWM(i, (-1)*i, PROTOCOL_SOM_NOACK);
     delay(loop_delay);
     print_velocity();
   }
-  for (int i = 0; i < upto; i++) {
+  for (int i = from; i < upto; i++) {
     hoverboard.sendPWM((-1)*i, i, PROTOCOL_SOM_NOACK);
     delay(loop_delay);
     print_velocity();
   }
-  for (int i = upto; i > 0; i--) {
+  for (int i = upto; i > from; i--) {
     hoverboard.sendPWM((-1)*i, i, PROTOCOL_SOM_NOACK);
     delay(loop_delay);
     print_velocity();
@@ -204,10 +208,21 @@ long last_encoder_time = millis();
 //float ticks_per_second;
 
 void loop() {
+  //
+//  while (1) {
+//    // test_motors(30, 200, 50);
+//    char* tuningMessage = btSerial.returnNewMessage('\n');
+//    if (tuningMessage != "xx") {
+//      Serial5.println(tuningMessage);
+//      serialTuner.parse_message(tuningMessage);
+//      
+//    }
+//    //hoverboard.sendPWM(serialTuner.parameters.directMotorSpeed, 0, PROTOCOL_SOM_NOACK);
+//    hoverboard.sendPWMData(serialTuner.parameters.directMotorSpeed, 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
+//
+//  }
 
-  //  while (1){
-  //    test_motors(200, 20);
-  //  }
+
 
   //print_velocity();
   get_mpu_data();
@@ -249,31 +264,31 @@ void loop() {
     PIDp.Compute();
     if (serialTuner.parameters.printIMU) {
       Serial5.print(aInput);
-      Serial5.println("    ");
-//      //    Serial5.print(aOutput);
-//      Serial5.print(" P:error,setpoint, input, output  ");
-//      Serial5.print(pInput - pSetpoint);
-//      //Serial5.print("    ");
-//      Serial5.print("    ");
-//      Serial5.print(pSetpoint);
-//      Serial5.print("    ");
-//      Serial5.print(pInput);
-//      Serial5.print("    po ");
-//      Serial5.print(pOutput);
-//      get_mpu_data();
-//      Serial5.print("  tps: ");
-//      Serial5.print(right_encoder.get_ticks_per_second());
-//      Serial5.print("  cnt: ");
-//      Serial5.print(right_encoder.counter);
-//      Serial5.print("    aout");
-//      Serial5.print(aOutput);
-//      Serial5.print("    encTim ");
-//      Serial5.print(encoderTimer);
-//      Serial5.print("    encTimMth ");
-//      Serial5.print((int)(2000 * (1 / ((aOutput * aOutput) / 180))));
-//
-//
-//      Serial5.println(" ");
+      Serial5.print("    ");
+      //      //    Serial5.print(aOutput);
+      //      Serial5.print(" P:error,setpoint, input, output  ");
+      //      Serial5.print(pInput - pSetpoint);
+      //      //Serial5.print("    ");
+      //      Serial5.print("    ");
+      //      Serial5.print(pSetpoint);
+      //      Serial5.print("    ");
+      //      Serial5.print(pInput);
+      //      Serial5.print("    po ");
+      //      Serial5.print(pOutput);
+      //      get_mpu_data();
+      //      Serial5.print("  tps: ");
+      //      Serial5.print(right_encoder.get_ticks_per_second());
+      //      Serial5.print("  cnt: ");
+      //      Serial5.print(right_encoder.counter);
+      Serial5.print("    aout");
+      Serial5.println(aOutput);
+      //      Serial5.print("    encTim ");
+      //      Serial5.print(encoderTimer);
+      //      Serial5.print("    encTimMth ");
+      //      Serial5.print((int)(2000 * (1 / ((aOutput * aOutput) / 180))));
+      //
+      //
+      //      Serial5.println(" ");
     }
     last_encoder_time = millis();
   }
@@ -311,19 +326,34 @@ void loop() {
 
   if (millis() < imu_startup_timer) {
 
-    //    hoverboard.sendBuzzer(10, 1, 10, PROTOCOL_SOM_NOACK);
-    //    delay((imu_startup_timer - millis()) / 20);
-    //    hoverboard.sendBuzzer(8, 1, 40, PROTOCOL_SOM_NOACK);
-    //    delay((imu_startup_timer - millis()) / 20);
-  }
+    hoverboard.sendBuzzer(10, 1, 10, PROTOCOL_SOM_NOACK);
+    delay((imu_startup_timer - millis()) / 20);
+    hoverboard.sendBuzzer(8, 1, 40, PROTOCOL_SOM_NOACK);
+    delay((imu_startup_timer - millis()) / 20);
 
+    if (serialTuner.parameters.skipStartupTimer) {
+      imu_startup_timer = 0;
+
+    }
+  }
   if (millis() > imu_startup_timer) {
     if (imu_ready == false) {
       Serial5.println("########## READY #########");
       imu_ready = true;
     }
     if (!serialTuner.parameters.enable_motors) {
-      hoverboard.sendPWM((-1)*aOutput, (-1)*aOutput, PROTOCOL_SOM_NOACK);
+      aOutputOffset = hoverboardDeadzone + serialTuner.parameters.aDeadzone;
+      if (aOutput > 0) {
+        //hoverboard.sendPWM((-1) * (aOutput + aOutputOffset), (-1) * (aOutput + aOutputOffset), PROTOCOL_SOM_NOACK);
+        //hoverboard.sendPWM((-1) * (aOutput + aOutputOffset), 0, PROTOCOL_SOM_NOACK);
+        hoverboard.sendPWMData((-1) * (aOutput + aOutputOffset), 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
+
+      } else {
+        // hoverboard.sendPWM((-1)*aOutput, (-1)*aOutput, PROTOCOL_SOM_NOACK);
+        //hoverboard.sendPWM((-1) * (aOutput - aOutputOffset), (-1) * (aOutput - aOutputOffset), PROTOCOL_SOM_NOACK);
+        //hoverboard.sendPWM((-1) * (aOutput - aOutputOffset), 0, PROTOCOL_SOM_NOACK);
+        hoverboard.sendPWMData((-1) * (aOutput - aOutputOffset), 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
+      }
     }
   }
 
