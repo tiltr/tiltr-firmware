@@ -29,11 +29,11 @@ class wheel_encoder
     int last_ticks_per_second;
     int get_ticks_per_second();
 
-    int get_counter();
+    long get_counter();
     bool get_direction();
     void dash();
     volatile bool forward = false;
-    volatile int counter = 0;
+    volatile long counter = 0;
     int hall_A_int;
     int hall_B_int;
     int hall_C_int;

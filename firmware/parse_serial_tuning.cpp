@@ -64,7 +64,7 @@ void serialTuningParser::print_all() {
   Serial5.print("Motors ");
   String motors = parameters.positionModeEnable ? "enabled" : "disabled";
   Serial5.println(motors);
-  
+
   Serial5.print(psetpoint);
   Serial5.println(parameters.pSetpoint);
 
@@ -72,6 +72,9 @@ void serialTuningParser::print_all() {
   Serial5.print(parameters.pOutputMax);
   Serial5.print(", ");
   Serial5.println(parameters.pOutputMin);
+
+  Serial5.print("aDeadzone: ");
+  Serial5.println(parameters.aDeadzone);
 
   parameters.printFlag = true;
 }
@@ -127,6 +130,11 @@ void serialTuningParser::print_changes() {
     print_multi_float("Min angle from pOut:", last_parameters.pOutputMin, parameters.pOutputMin);
   }
 
+  if (last_parameters.aDeadzone != parameters.aDeadzone) {
+    print_multi_float("Deadzone:", last_parameters.aDeadzone, parameters.aDeadzone);
+  }
+
+
 
   //last_parameters.aKp = parameters.aKp;
   last_parameters = parameters;
@@ -179,6 +187,8 @@ void serialTuningParser::parse_message(const char* message) {
         key_a = '\0';
         key_b = '\0';
         break;
+      case 'x':
+        parameters.skipStartupTimer = true;
       default:
         break;
     }
@@ -221,6 +231,11 @@ void serialTuningParser::parse_message(const char* message) {
         case 's':
           parameters.aSetpoint = value;
           break;
+        case 'z':
+          parameters.aDeadzone = value;
+          break;
+        case 'm':
+          parameters.directMotorSpeed = value;
         default:
           break;
 

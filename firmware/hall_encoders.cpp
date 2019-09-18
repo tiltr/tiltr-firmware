@@ -36,7 +36,7 @@ float wheel_encoder::get_velocity() {
   return velocity;
 }
 
-int wheel_encoder::get_counter() {
+long wheel_encoder::get_counter() {
   return counter;
 }
 

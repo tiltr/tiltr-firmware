@@ -4,7 +4,8 @@
 #include "Arduino.h"
 
 //#define INITIAL_HOME_ANGLE 165.32 // degrees
-#define INITIAL_HOME_ANGLE 164.7 // degrees
+//#define INITIAL_HOME_ANGLE 167.5 // degrees
+#define INITIAL_HOME_ANGLE 162.82 // box
 
 
 struct tuningParameters {
@@ -12,14 +13,14 @@ struct tuningParameters {
   float aHome = INITIAL_HOME_ANGLE;
   //double aKp, aKi, aKd;
   //double pKp, pKi, pKd;
-  double pKp = 20.0 , pKi = 0.0, pKd = 0.01;
+  double pKp = 9.0 , pKi = 0.0, pKd = 0.01;
   //pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
   //double aKp = 45.0, aKi = 5.0, aKd = 0.9;
-  double aKp = 45.0, aKi = 0.0, aKd = 0.5;
+  double aKp = 18.0, aKi = 5.0, aKd = 0.1;
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
-
+  int aDeadzone = 2;
 
   float aOutputMax = 90.0;
   float aOutputMin = -90.0;
@@ -28,7 +29,9 @@ struct tuningParameters {
   float steering_gain = 0.0;
 
   bool pOutputLimitChanged = false;
-  
+
+  bool skipStartupTimer = false;
+  double directMotorSpeed = 0.0;
 
   bool enable_motors = false;
   int iTune = 99;
