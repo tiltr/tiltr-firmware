@@ -20,7 +20,7 @@ struct tuningParameters {
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
-  int aDeadzone = 2;
+  int aDeadzone = 0;
 
   float aOutputMax = 90.0;
   float aOutputMin = -90.0;

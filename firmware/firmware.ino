@@ -94,10 +94,12 @@ void setup() {
 
   // Comms to PC
   Serial.begin(115200);
+  Serial.print("OK");
   // Comms to hoverboard
   Serial4.begin(115200);
   // Comms for bluetooth
   btSerial.begin(57600);
+  Serial2.begin(57600);
   // Comms for tuning
   tuningSerial.begin(1000000);
 
@@ -227,6 +229,7 @@ void loop() {
   //print_velocity();
   get_mpu_data();
   aInput = get_imu_data(2);
+  Serial.println(aInput);
 
   char* tuningMessage = btSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
@@ -346,13 +349,14 @@ void loop() {
       if (aOutput > 0) {
         //hoverboard.sendPWM((-1) * (aOutput + aOutputOffset), (-1) * (aOutput + aOutputOffset), PROTOCOL_SOM_NOACK);
         //hoverboard.sendPWM((-1) * (aOutput + aOutputOffset), 0, PROTOCOL_SOM_NOACK);
-        hoverboard.sendPWMData((-1) * (aOutput + aOutputOffset), 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
+        hoverboard.sendPWMData((-1) * (aOutput + aOutputOffset), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+        //     void sendPWMData(int16_t pwm, int16_t steer = 0, int speed_max_power = 600, int speed_min_power = -600, int speed_minimum_pwm = 10, char som = PROTOCOL_SOM_ACK);
 
       } else {
         // hoverboard.sendPWM((-1)*aOutput, (-1)*aOutput, PROTOCOL_SOM_NOACK);
         //hoverboard.sendPWM((-1) * (aOutput - aOutputOffset), (-1) * (aOutput - aOutputOffset), PROTOCOL_SOM_NOACK);
         //hoverboard.sendPWM((-1) * (aOutput - aOutputOffset), 0, PROTOCOL_SOM_NOACK);
-        hoverboard.sendPWMData((-1) * (aOutput - aOutputOffset), 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
+        hoverboard.sendPWMData((-1) * (aOutput - aOutputOffset), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
       }
     }
   }
