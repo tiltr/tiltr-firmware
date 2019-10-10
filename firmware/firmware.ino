@@ -9,11 +9,21 @@
 
 #define print_help
 
-HardwareSerial Serial5(PD2, PC12);
-SerialMessenger btSerial(Serial5);
+//
+//HardwareSerial Serial2(PD2, PC12);
+//SerialMessenger btSerial(Serial2);
+//
+//HardwareSerial Serial3(PC11, PC10);
+//SerialMessenger tuningSerial(Serial3);
 
+
+
+//HardwareSerial Serial2(PD2, PC12);
+//SerialMessenger btSerial(Serial2);
+//HardwareSerial Serial3(PA2, PA3);
 HardwareSerial Serial3(PC11, PC10);
 SerialMessenger tuningSerial(Serial3);
+
 
 wheel_encoder left_encoder('L');
 wheel_encoder right_encoder('R');
@@ -97,11 +107,12 @@ void setup() {
   Serial.print("OK");
   // Comms to hoverboard
   Serial4.begin(115200);
+  // Serial3.begin(57600);
   // Comms for bluetooth
-  btSerial.begin(57600);
-  Serial2.begin(57600);
+  tuningSerial.begin(57600);
+  // Serial2.begin(57600);
   // Comms for tuning
-  tuningSerial.begin(1000000);
+  // tuningSerial.begin(1000000);
 
   init_mpu();
 
@@ -128,7 +139,7 @@ bool p_flag = true;
 long timer = millis();
 long timer_2 = millis();
 //long imu_startup_timer = 30000;
-long imu_startup_timer = 30000;
+long imu_startup_timer = 3000;
 //long imu_startup_timer = 30;
 
 char global_ID;
@@ -136,10 +147,10 @@ float global_value;
 void print_velocity() {
   if (((millis() - timer) > 50)) {
 
-    Serial5.print("l_velocity = ");
-    Serial5.print(left_encoder.get_velocity());
-    Serial5.print(" r_velocity = ");
-    Serial5.println(right_encoder.get_velocity());
+    Serial3.print("l_velocity = ");
+    Serial3.print(left_encoder.get_velocity());
+    Serial3.print(" r_velocity = ");
+    Serial3.println(right_encoder.get_velocity());
     //    Serial.print(" , angle: ");
     //    Serial.print(get_imu_data(1));
     //    Serial.print(", ");
@@ -177,11 +188,11 @@ void apply_tunings() {
   if (serialTuner.parameters.updateAnglePID) {
     PIDa.SetTunings(serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd);
     serialTuner.parameters.updateAnglePID = false;
-    Serial5.println("Angle PID gains updated");
+    Serial3.println("Angle PID gains updated");
   } else if (serialTuner.parameters.updatePositionPID) {
     PIDp.SetTunings(serialTuner.parameters.pKp, serialTuner.parameters.pKi, serialTuner.parameters.pKd);
     serialTuner.parameters.updatePositionPID = false;
-    Serial5.println("Position PID gains updated");
+    Serial3.println("Position PID gains updated");
   }
   if (aSetpoint != serialTuner.parameters.aSetpoint) {
     aSetpoint = serialTuner.parameters.aSetpoint;
@@ -193,8 +204,8 @@ void apply_tunings() {
 
 
   if (serialTuner.parameters.printFlag) {
-    Serial5.print("current angle: ");
-    Serial5.println(aInput);
+    Serial3.print("current angle: ");
+    Serial3.println(aInput);
   }
 
   serialTuner.parameters.printFlag = false;
@@ -211,29 +222,33 @@ long last_encoder_time = millis();
 
 void loop() {
   //
-//  while (1) {
-//    // test_motors(30, 200, 50);
-//    char* tuningMessage = btSerial.returnNewMessage('\n');
-//    if (tuningMessage != "xx") {
-//      Serial5.println(tuningMessage);
-//      serialTuner.parse_message(tuningMessage);
-//      
-//    }
-//    //hoverboard.sendPWM(serialTuner.parameters.directMotorSpeed, 0, PROTOCOL_SOM_NOACK);
-//    hoverboard.sendPWMData(serialTuner.parameters.directMotorSpeed, 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
-//
-//  }
+  //  while (1) {
+  //    // test_motors(30, 200, 50);
+  //    char* tuningMessage = btSerial.returnNewMessage('\n');
+  //    if (tuningMessage != "xx") {
+  //      Serial3.println(tuningMessage);
+  //      serialTuner.parse_message(tuningMessage);
+  //
+  //    }
+  //    //hoverboard.sendPWM(serialTuner.parameters.directMotorSpeed, 0, PROTOCOL_SOM_NOACK);
+  //    hoverboard.sendPWMData(serialTuner.parameters.directMotorSpeed, 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
+  //
+  //  }
 
-
+  //  while (1) {
+  //    test_motors(30, 200, 50);
+  //  }
 
   //print_velocity();
   get_mpu_data();
   aInput = get_imu_data(2);
-  Serial.println(aInput);
+  if (serialTuner.parameters.printIMU) {
+    Serial3.println(aInput);
+  }
 
-  char* tuningMessage = btSerial.returnNewMessage('\n');
+  char* tuningMessage = tuningSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
-    Serial5.println(tuningMessage);
+    Serial3.println(tuningMessage);
     serialTuner.parse_message(tuningMessage);
     apply_tunings();
 
@@ -266,32 +281,32 @@ void loop() {
     get_mpu_data();
     PIDp.Compute();
     if (serialTuner.parameters.printIMU) {
-      Serial5.print(aInput);
-      Serial5.print("    ");
-      //      //    Serial5.print(aOutput);
-      //      Serial5.print(" P:error,setpoint, input, output  ");
-      //      Serial5.print(pInput - pSetpoint);
-      //      //Serial5.print("    ");
-      //      Serial5.print("    ");
-      //      Serial5.print(pSetpoint);
-      //      Serial5.print("    ");
-      //      Serial5.print(pInput);
-      //      Serial5.print("    po ");
-      //      Serial5.print(pOutput);
+      Serial3.print(aInput);
+      Serial3.print("    ");
+      //      //    Serial3.print(aOutput);
+      //      Serial3.print(" P:error,setpoint, input, output  ");
+      //      Serial3.print(pInput - pSetpoint);
+      //      //Serial3.print("    ");
+      //      Serial3.print("    ");
+      //      Serial3.print(pSetpoint);
+      //      Serial3.print("    ");
+      //      Serial3.print(pInput);
+      //      Serial3.print("    po ");
+      //      Serial3.print(pOutput);
       //      get_mpu_data();
-      //      Serial5.print("  tps: ");
-      //      Serial5.print(right_encoder.get_ticks_per_second());
-      //      Serial5.print("  cnt: ");
-      //      Serial5.print(right_encoder.counter);
-      Serial5.print("    aout");
-      Serial5.println(aOutput);
-      //      Serial5.print("    encTim ");
-      //      Serial5.print(encoderTimer);
-      //      Serial5.print("    encTimMth ");
-      //      Serial5.print((int)(2000 * (1 / ((aOutput * aOutput) / 180))));
+      //      Serial3.print("  tps: ");
+      //      Serial3.print(right_encoder.get_ticks_per_second());
+      //      Serial3.print("  cnt: ");
+      //      Serial3.print(right_encoder.counter);
+      Serial3.print("    aout");
+      Serial3.println(aOutput);
+      //      Serial3.print("    encTim ");
+      //      Serial3.print(encoderTimer);
+      //      Serial3.print("    encTimMth ");
+      //      Serial3.print((int)(2000 * (1 / ((aOutput * aOutput) / 180))));
       //
       //
-      //      Serial5.println(" ");
+      //      Serial3.println(" ");
     }
     last_encoder_time = millis();
   }
@@ -303,28 +318,28 @@ void loop() {
   PIDa.Compute();
 
   if (serialTuner.parameters.printIMU) {
-    //Serial5.print(left_encoder.get_velocity());
-    //Serial5.print("    ");
-    //    Serial5.print("A:error,setpoint, input, output  ");
-    //    Serial5.print(aInput - aSetpoint);
-    //    //Serial5.print("    ");
-    //    Serial5.print("    ");
-    //    Serial5.print(aSetpoint);
-    //    Serial5.print("    ");
-    //    Serial5.print(aInput);
-    //    Serial5.print("    ");
-    ////    Serial5.print(aOutput);
-    //    Serial5.print(" P:error,setpoint, input, output  ");
-    //    Serial5.print(pInput - pSetpoint);
-    //    //Serial5.print("    ");
-    //    Serial5.print("    ");
-    //    Serial5.print(pSetpoint);
-    //    Serial5.print("    ");
-    //    Serial5.print(pInput);
-    //    Serial5.print("    ");
-    //    Serial5.print(pOutput);
+    //Serial3.print(left_encoder.get_velocity());
+    //Serial3.print("    ");
+    //    Serial3.print("A:error,setpoint, input, output  ");
+    //    Serial3.print(aInput - aSetpoint);
+    //    //Serial3.print("    ");
+    //    Serial3.print("    ");
+    //    Serial3.print(aSetpoint);
+    //    Serial3.print("    ");
+    //    Serial3.print(aInput);
+    //    Serial3.print("    ");
+    ////    Serial3.print(aOutput);
+    //    Serial3.print(" P:error,setpoint, input, output  ");
+    //    Serial3.print(pInput - pSetpoint);
+    //    //Serial3.print("    ");
+    //    Serial3.print("    ");
+    //    Serial3.print(pSetpoint);
+    //    Serial3.print("    ");
+    //    Serial3.print(pInput);
+    //    Serial3.print("    ");
+    //    Serial3.print(pOutput);
     //print_velocity();
-    //    Serial5.println(" ");
+    //    Serial3.println(" ");
   }
 
   if (millis() < imu_startup_timer) {
@@ -339,9 +354,10 @@ void loop() {
 
     }
   }
+
   if (millis() > imu_startup_timer) {
     if (imu_ready == false) {
-      Serial5.println("########## READY #########");
+      Serial3.println("########## READY #########");
       imu_ready = true;
     }
     if (!serialTuner.parameters.enable_motors) {

@@ -4,20 +4,20 @@
 void serialTuningParser::print_multi_float(String variable_name, float old_value, float new_value) {
   String prefix = "Old " + variable_name + ": ";
   String midfix = ". New " + variable_name + ": ";
-  Serial5.print(prefix);
-  Serial5.print(old_value);
-  Serial5.print(midfix);
-  Serial5.println(new_value);
+  Serial3.print(prefix);
+  Serial3.print(old_value);
+  Serial3.print(midfix);
+  Serial3.println(new_value);
 }
 
 void serialTuningParser::print_multi_bool(String variable_name, bool old_value, bool new_value) {
   String prefix = "Old " + variable_name + ": ";
   String midfix = ". New " + variable_name + ": ";
   String str = "Old " + variable_name + ": " +  old_value + ". Now: " + new_value;
-  Serial5.print(prefix);
-  Serial5.print(old_value);
-  Serial5.print(midfix);
-  Serial5.println(new_value);
+  Serial3.print(prefix);
+  Serial3.print(old_value);
+  Serial3.print(midfix);
+  Serial3.println(new_value);
 }
 
 void serialTuningParser::print_all() {
@@ -31,50 +31,50 @@ void serialTuningParser::print_all() {
   String pkd = "d - pKd: ";
   String psetpoint = "s - pSetpoint: ";
   String poutputlimit = "o - pOutputMax/Min: +";
-  Serial5.print(asetpoint);
-  Serial5.print(parameters.aSetpoint);
-  Serial5.print(" +/- ");
-  Serial5.println(parameters.steering_gain);
+  Serial3.print(asetpoint);
+  Serial3.print(parameters.aSetpoint);
+  Serial3.print(" +/- ");
+  Serial3.println(parameters.steering_gain);
 
-  Serial5.print(akp);
-  Serial5.println(parameters.aKp);
+  Serial3.print(akp);
+  Serial3.println(parameters.aKp);
 
-  Serial5.print(aki);
-  Serial5.println(parameters.aKi);
+  Serial3.print(aki);
+  Serial3.println(parameters.aKi);
 
-  Serial5.print(akd);
-  Serial5.println(parameters.aKd);
+  Serial3.print(akd);
+  Serial3.println(parameters.aKd);
 
-  Serial5.print(steering_gain );
-  Serial5.println(parameters.steering_gain );
+  Serial3.print(steering_gain );
+  Serial3.println(parameters.steering_gain );
 
-  Serial5.print(pkp);
-  Serial5.println(parameters.pKp);
+  Serial3.print(pkp);
+  Serial3.println(parameters.pKp);
 
-  Serial5.print(pki);
-  Serial5.println(parameters.pKi);
+  Serial3.print(pki);
+  Serial3.println(parameters.pKi);
 
-  Serial5.print(pkd);
-  Serial5.println(parameters.pKd);
+  Serial3.print(pkd);
+  Serial3.println(parameters.pKd);
 
-  Serial5.print("Position mode ");
+  Serial3.print("Position mode ");
   String positionMode = parameters.positionModeEnable ? "enabled" : "disabled";
-  Serial5.println(positionMode);
+  Serial3.println(positionMode);
 
-  Serial5.print("Motors ");
+  Serial3.print("Motors ");
   String motors = parameters.positionModeEnable ? "enabled" : "disabled";
-  Serial5.println(motors);
+  Serial3.println(motors);
 
-  Serial5.print(psetpoint);
-  Serial5.println(parameters.pSetpoint);
+  Serial3.print(psetpoint);
+  Serial3.println(parameters.pSetpoint);
 
-  Serial5.print(poutputlimit);
-  Serial5.print(parameters.pOutputMax);
-  Serial5.print(", ");
-  Serial5.println(parameters.pOutputMin);
+  Serial3.print(poutputlimit);
+  Serial3.print(parameters.pOutputMax);
+  Serial3.print(", ");
+  Serial3.println(parameters.pOutputMin);
 
-  Serial5.print("aDeadzone: ");
-  Serial5.println(parameters.aDeadzone);
+  Serial3.print("aDeadzone: ");
+  Serial3.println(parameters.aDeadzone);
 
   parameters.printFlag = true;
 }
@@ -142,8 +142,8 @@ void serialTuningParser::print_changes() {
 
 void serialTuningParser::parse_message(const char* message) {
   //  struct tuningParameters parameters;
-  //Serial5.print("in parse message: ");
-  //Serial5.println(message);
+  //Serial3.print("in parse message: ");
+  //Serial3.println(message);
   char* separator;
   float value;
 
@@ -152,16 +152,16 @@ void serialTuningParser::parse_message(const char* message) {
     key_a = *message;
     switch (key_a) {
       case 'a':
-        Serial5.println("Tuning angle, select p i or d");
+        Serial3.println("Tuning angle, select p i or d");
         break;
       case 'v':
-        Serial5.println("Tuning position, select p i or d");
+        Serial3.println("Tuning position, select p i or d");
         break;
       case 's':
-        Serial5.print("Tuning setpoint. e.g. s=167.5");
+        Serial3.print("Tuning setpoint. e.g. s=167.5");
         break;
       case 'd':
-        Serial5.print("Drive mode active! Press q to quit");
+        Serial3.print("Drive mode active! Press q to quit");
         break;
       case 'p':
         print_all();
@@ -200,15 +200,15 @@ void serialTuningParser::parse_message(const char* message) {
     key_b = ID;
     ++separator;
     value = atof(separator);
-    Serial5.print("val: ");
-    Serial5.println(value);
+    Serial3.print("val: ");
+    Serial3.println(value);
   }
 
 
-  Serial5.print("Key_a: ");
-  Serial5.print(key_a);
-  Serial5.print(" Key_b: ");
-  Serial5.println(key_b);
+  Serial3.print("Key_a: ");
+  Serial3.print(key_a);
+  Serial3.print(" Key_b: ");
+  Serial3.println(key_b);
 
 
   // outer state machine
@@ -302,7 +302,7 @@ void serialTuningParser::parse_message(const char* message) {
           break;
         case 'q':
           parameters.drive_mode_active = false;
-          Serial5.print("Drive mode disabled.");
+          Serial3.print("Drive mode disabled.");
           key_a = '\0';
           break;
         default:

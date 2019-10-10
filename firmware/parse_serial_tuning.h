@@ -5,7 +5,8 @@
 
 //#define INITIAL_HOME_ANGLE 165.32 // degrees
 //#define INITIAL_HOME_ANGLE 167.5 // degrees
-#define INITIAL_HOME_ANGLE 162.82 // box
+//#define INITIAL_HOME_ANGLE 162.82 // box
+#define INITIAL_HOME_ANGLE -1.0 // box
 
 
 struct tuningParameters {
