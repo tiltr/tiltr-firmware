@@ -90,13 +90,13 @@ bool PID::Compute()
 //      Serial.print(" ");
 //      Serial.print(error);
 //      Serial.print(" ");
-      //Serial.print(kp * error);
-      //Serial.print(" ");
+      Serial.print(kp * error);
+      Serial.print(" ");
       //Serial.print(outputSum);
 //      Serial.print(" ");
-      Serial.println(dInput);
-      //Serial.print(" ");
-      //Serial.println(output);
+      Serial.print(kd * dInput);
+      Serial.print(" ");
+      Serial.println(output);
     }
     /*Remember some variables for next time*/
     lastInput = input;
@@ -113,6 +113,9 @@ bool PID::Compute()
  ******************************************************************************/
 void PID::SetTunings(double Kp, double Ki, double Kd, int POn)
 {
+  if (Ki == 0.0){
+    outputSum = 0.0;
+  }
   if (Kp < 0 || Ki < 0 || Kd < 0) return;
 
   pOn = POn;
