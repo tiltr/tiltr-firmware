@@ -1,6 +1,6 @@
 /*
     Author: Tom Queen
-    Ports:
+    Serial ports:
     PA1, PA0   - Hoverboard comms
     PD2, PC12  - General serial (bluetooth or hard line)
     PC11, PC10 - General serial (bluetooth or hard line)
@@ -17,13 +17,10 @@
 #define LED PA5
 #define print_help
 
-
 // Port for control/tuning
 HardwareSerial Serial3(PC11, PC10);
-// Serial hardware handler
-SerialMessenger tuningSerial(Serial3);
-// Serial message parser
-serialTuningParser serialTuner;
+SerialMessenger tuningSerial(Serial3); // Serial hardware handler
+serialTuningParser serialTuner; // Serial message parser
 
 // Hoverboard comms
 HardwareSerial Serial4(PA1, PA0);
@@ -32,6 +29,7 @@ int serialWrapper(unsigned char *data, int len) {
 }
 HoverboardAPI hoverboard = HoverboardAPI(serialWrapper);
 
+//struct btData btMessage; // I think this is something to do with android bluetooth control
 
 wheel_encoder left_encoder('L');
 wheel_encoder right_encoder('R');
@@ -55,7 +53,6 @@ void r_hall_c_change() {
   right_encoder.hall_c_change();
 }
 
-
 // Call frequently to stop imu buffer overflowing
 void get_mpu_data() {
   float imu_data = get_imu_data(0);
@@ -63,25 +60,23 @@ void get_mpu_data() {
 
 /*-----( PID variables )------*/
 double aInput, aOutput;
-double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
 double aSetpoint = serialTuner.parameters.aHome;
 float aOutputMax = 100.0;
 float aOutputMin = -100.0;
+double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
 PID PIDp(&pInput, &pOutput, &pSetpoint, serialTuner.parameters.pKp, serialTuner.parameters.pKi, serialTuner.parameters.pKd, DIRECT);
 PID PIDa(&aInput, &aOutput, &aSetpoint, serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd, DIRECT);
 
-// Timers
+/*-----( Timers )------*/
 bool unlock_ascii_on_startup = true;
-int print_velocity_period = 50; // milliseconds
-long imu_startup_timer = 3000; // milliseconds
-long unlock_ascii_timer = millis();
-long print_velocity_timer = millis();
-bool imu_ready = false;
-int hoverboardDeadzone = 0;//40;
-int aOutputOffset = hoverboardDeadzone;
+int print_velocity_period = 50; // ms
+int print_period = 50; // ms
+long imu_startup_timer = 3000; // ms
 int encoderTimer = 200; // Default frequency for calculating wheel velocities (ms), increases when robot is slow
+long print_velocity_timer = millis();
 long last_encoder_time = millis();
-//struct btData btMessage; // I think this is something to do with android bluetooth control
+long print_timer = millis();
+bool imu_ready = false;
 
 void setup() {
 
@@ -179,19 +174,20 @@ void scary_startup_sounds(long current_timer) {
   delay((current_timer - millis()) / 20);
 }
 
+void unlock_ascii() {
+  hoverboard.sendBuzzer(10, 1, 100, PROTOCOL_SOM_NOACK);
+  Serial4.println("unlockASCII"); // Unlock ascii protocol
+  Serial4.println('P'); // Disable poweroff & constant beeping
+}
+
 
 void loop() {
   // Call frequently to stop buffer overflowing,
-  // should be replaced with timer-interrupt
+  // should be called via timer-interrupt
   get_mpu_data();
 
   while (1) {
     test_motors(0, 200, 1);
-  }
-
-  aInput = get_imu_data(2);
-  if (serialTuner.parameters.printIMU) {
-    Serial3.println(aInput);
   }
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
@@ -218,16 +214,20 @@ void loop() {
 
   if (millis() > (encoderTimer + last_encoder_time)) {
     pInput = 0.0; //right_encoder.get_velocity();
-    // Clear imu buffer (just incase calcs take too long)
+    // Clear imu buffer (just in case calcs take too long)
     get_mpu_data();
     PIDp.Compute();
-    if (serialTuner.parameters.printIMU) {
-      Serial3.print("aInput: ");
-      Serial3.print(aInput);
-      Serial3.print("  , aout: ");
-      Serial3.println(aOutput);
-    }
     last_encoder_time = millis();
+  }
+
+  aInput = get_imu_data(2);
+
+  if ((millis() > (print_timer + print_period)) && serialTuner.parameters.printIMU) {
+    Serial3.print("aInput: ");
+    Serial3.print(aInput);
+    Serial3.print("  , aout: ");
+    Serial3.println(aOutput);
+    print_timer = millis();
   }
 
   // Adjust goal angle based off velocity to hold a position
@@ -237,7 +237,22 @@ void loop() {
 
   PIDa.Compute();
 
-  // Make scary sounds during startup to warn of motors about to turn on
+  if (millis() > imu_startup_timer) {
+    if (imu_ready == false) {
+      Serial3.println("########## READY #########");
+      imu_ready = true;
+    }
+    if (!serialTuner.parameters.enable_motors) {
+      if (aOutput > 0) {
+        // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
+        hoverboard.sendPWMData((-1) * (aOutput + serialTuner.parameters.aDeadzone), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+      } else {
+        hoverboard.sendPWMData((-1) * (aOutput - serialTuner.parameters.aDeadzone), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+      }
+    }
+  }
+
+  // Make scary sounds during startup to warn that the motors are about to turn on
   if (millis() < imu_startup_timer) {
     scary_startup_sounds(imu_startup_timer);
     if (serialTuner.parameters.skipStartupTimer) {
@@ -245,27 +260,8 @@ void loop() {
     }
   }
 
-  if (millis() > imu_startup_timer) {
-    if (imu_ready == false) {
-      Serial3.println("########## READY #########");
-      imu_ready = true;
-    }
-    if (!serialTuner.parameters.enable_motors) {
-      aOutputOffset = hoverboardDeadzone + serialTuner.parameters.aDeadzone;
-      if (aOutput > 0) {
-        // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
-        hoverboard.sendPWMData((-1) * (aOutput + aOutputOffset), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
-      } else {
-        hoverboard.sendPWMData((-1) * (aOutput - aOutputOffset), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
-      }
-    }
-  }
-
-  if (((millis() - unlock_ascii_timer) > 1000) && unlock_ascii_on_startup) {
-    //sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
-    hoverboard.sendBuzzer(10, 1, 100, PROTOCOL_SOM_NOACK);
-    Serial4.println("unlockASCII");
-    Serial4.println('P');
+  if ((millis() > 2000) && unlock_ascii_on_startup) {
+    unlock_ascii();
     unlock_ascii_on_startup = false;
   }
 
