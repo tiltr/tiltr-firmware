@@ -1,51 +1,40 @@
+/*
+    Author: Tom Queen
+    Ports:
+    PA1, PA0   - Hoverboard comms
+    PD2, PC12  - General serial (bluetooth or hard line)
+    PC11, PC10 - General serial (bluetooth or hard line)
+    See https://github.com/tiltr/tiltr-PCB/blob/master/mainboard/mainboard/Schematic.pdf for more info
+*/
 #include "bluetooth.h"
 #include "parse_serial_tuning.h"
 #include "PID_v1.h"
 #include <hall_encoders.h>
 #include <HoverboardAPI.h>
 #include <Filters.h>
-#include <ros.h>
+// #include <ros.h>
 
 #define LED PA5
-
 #define print_help
 
-//
-//HardwareSerial Serial2(PD2, PC12);
-//SerialMessenger btSerial(Serial2);
-//
-//HardwareSerial Serial3(PC11, PC10);
-//SerialMessenger tuningSerial(Serial3);
 
-
-
-//HardwareSerial Serial2(PD2, PC12);
-//SerialMessenger btSerial(Serial2);
-//HardwareSerial Serial3(PA2, PA3);
+// Port for control/tuning
 HardwareSerial Serial3(PC11, PC10);
+// Serial hardware handler
 SerialMessenger tuningSerial(Serial3);
+// Serial message parser
+serialTuningParser serialTuner;
 
-
-wheel_encoder left_encoder('L');
-wheel_encoder right_encoder('R');
-
+// Hoverboard comms
 HardwareSerial Serial4(PA1, PA0);
 int serialWrapper(unsigned char *data, int len) {
   return (int) Serial4.write(data, len);
 }
-
 HoverboardAPI hoverboard = HoverboardAPI(serialWrapper);
 
-double Setpoint, Input, Output;
-double Kp = 45, Ki = 5, Kd = 0.9;
-//PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
-int hoverboardDeadzone = 0;//40;
-int aOutputOffset = hoverboardDeadzone;
-
-
-
-
+wheel_encoder left_encoder('L');
+wheel_encoder right_encoder('R');
 void l_hall_a_change() {
   left_encoder.hall_a_change();
 }
@@ -66,55 +55,47 @@ void r_hall_c_change() {
   right_encoder.hall_c_change();
 }
 
-void get_mpu_data()
-{
+
+// Call frequently to stop imu buffer overflowing
+void get_mpu_data() {
   float imu_data = get_imu_data(0);
-  //Serial.println(imu_data);
 }
 
-
-serialTuningParser serialTuner;
-
 /*-----( PID variables )------*/
-//Define Variables we'll be connecting to
-//float aHome = 169.8; //robot balancing
-float aHome = serialTuner.parameters.aHome;//165.88; //robot propped up
-double pKp = 7.0 , pKi = 0.0, pKd = 0.01;
-//pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
-//double aKp = 45.0, aKi = 5.0, aKd = 0.9;
-//double aKp = 45.0, aKi = 0.0, aKd = 0.0;
-
 double aInput, aOutput;
 double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
-double aSetpoint = aHome;
-float aOutputMax = 90.0;
-float aOutputMin = -90.0;
-float pOutputMax = 7.5;
-float pOutputMin = -7.5;
-
-
-
-
+double aSetpoint = serialTuner.parameters.aHome;
+float aOutputMax = 100.0;
+float aOutputMin = -100.0;
 PID PIDp(&pInput, &pOutput, &pSetpoint, serialTuner.parameters.pKp, serialTuner.parameters.pKi, serialTuner.parameters.pKd, DIRECT);
 PID PIDa(&aInput, &aOutput, &aSetpoint, serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd, DIRECT);
 
-
-
+// Timers
+bool unlock_ascii_on_startup = true;
+int print_velocity_period = 50; // milliseconds
+long imu_startup_timer = 3000; // milliseconds
+long unlock_ascii_timer = millis();
+long print_velocity_timer = millis();
+bool imu_ready = false;
+int hoverboardDeadzone = 0;//40;
+int aOutputOffset = hoverboardDeadzone;
+int encoderTimer = 200; // Default frequency for calculating wheel velocities (ms), increases when robot is slow
+long last_encoder_time = millis();
+//struct btData btMessage; // I think this is something to do with android bluetooth control
 
 void setup() {
 
   // Comms to PC
   Serial.begin(115200);
   Serial.print("OK");
+
   // Comms to hoverboard
   Serial4.begin(115200);
-  // Serial3.begin(57600);
-  // Comms for bluetooth
-  tuningSerial.begin(57600);
-  // Serial2.begin(57600);
-  // Comms for tuning
-  // tuningSerial.begin(1000000);
 
+  // Comms for control/tuning
+  tuningSerial.begin(57600);
+
+  // Start MPU6050
   init_mpu();
 
   attachInterrupt(digitalPinToInterrupt(left_encoder.hall_B_int), l_hall_a_change, CHANGE);
@@ -127,38 +108,21 @@ void setup() {
 
   pinMode(LED, OUTPUT);
 
-
-  //Setpoint = 169.8;
-  PIDa.SetOutputLimits(-100, 100);
+  PIDa.SetOutputLimits(aOutputMin, aOutputMax);
   PIDa.SetMode(AUTOMATIC);
 
   PIDp.SetOutputLimits(serialTuner.parameters.pOutputMin, serialTuner.parameters.pOutputMax);
   PIDp.SetMode(AUTOMATIC);
 
 }
-bool p_flag = true;
-long timer = millis();
-long timer_2 = millis();
-//long imu_startup_timer = 30000;
-long imu_startup_timer = 3000;
-//long imu_startup_timer = 30;
 
-char global_ID;
-float global_value;
 void print_velocity() {
-  if (((millis() - timer) > 50)) {
-
+  if (((millis() - print_velocity_timer) > print_velocity_period)) {
     Serial3.print("l_velocity = ");
     Serial3.print(left_encoder.get_velocity());
     Serial3.print(" r_velocity = ");
     Serial3.println(right_encoder.get_velocity());
-    //    Serial.print(" , angle: ");
-    //    Serial.print(get_imu_data(1));
-    //    Serial.print(", ");
-    //    Serial.print(global_ID);
-    //    Serial.print("val: ");
-    //    Serial.println(global_value);
-    timer = millis();
+    print_velocity_timer = millis();
   }
 }
 void test_motors(int from, int upto, int loop_delay) {
@@ -183,7 +147,6 @@ void test_motors(int from, int upto, int loop_delay) {
     print_velocity();
   }
 }
-bool s_flag = false;
 
 void apply_tunings() {
   if (serialTuner.parameters.updateAnglePID) {
@@ -202,49 +165,30 @@ void apply_tunings() {
     PIDp.SetOutputLimits(serialTuner.parameters.pOutputMin, serialTuner.parameters.pOutputMax);
     serialTuner.parameters.pOutputLimitChanged = false;
   }
-
-
   if (serialTuner.parameters.printFlag) {
     Serial3.print("current angle: ");
     Serial3.println(aInput);
   }
-
   serialTuner.parameters.printFlag = false;
-
 }
 
-struct btData btMessage;
-bool imu_ready = false;
+void scary_startup_sounds(long current_timer) {
+  hoverboard.sendBuzzer(10, 1, 10, PROTOCOL_SOM_NOACK);
+  delay((current_timer - millis()) / 20);
+  hoverboard.sendBuzzer(8, 1, 40, PROTOCOL_SOM_NOACK);
+  delay((current_timer - millis()) / 20);
+}
 
-int encoderTimer = 200;
-long last_encoder_time = millis();
-
-//float ticks_per_second;
 
 void loop() {
-  //
-  //  while (1) {
-  //    // test_motors(30, 200, 50);
-  //    char* tuningMessage = btSerial.returnNewMessage('\n');
-  //    if (tuningMessage != "xx") {
-  //      Serial3.println(tuningMessage);
-  //      serialTuner.parse_message(tuningMessage);
-  //
-  //    }
-  //    //hoverboard.sendPWM(serialTuner.parameters.directMotorSpeed, 0, PROTOCOL_SOM_NOACK);
-  //    hoverboard.sendPWMData(serialTuner.parameters.directMotorSpeed, 0, 300, -300, 1, PROTOCOL_SOM_NOACK);
-  //
-  //  }
+  // Call frequently to stop buffer overflowing,
+  // should be replaced with timer-interrupt
+  get_mpu_data();
 
   while (1) {
     test_motors(0, 200, 1);
-//    for (int i = 10; i > 1; i--) {
-//      test_motors(0, 200, i);
-//    }
   }
 
-  //print_velocity();
-  get_mpu_data();
   aInput = get_imu_data(2);
   if (serialTuner.parameters.printIMU) {
     Serial3.println(aInput);
@@ -256,106 +200,48 @@ void loop() {
     serialTuner.parse_message(tuningMessage);
     apply_tunings();
 
-
-
-    //Drive mode
     if (serialTuner.parameters.drive_mode_active) {
+      //Drive mode
       if (serialTuner.parameters.forward) {
         aSetpoint = (serialTuner.parameters.aSetpoint + serialTuner.parameters.steering_gain);
       } else if (serialTuner.parameters.backward) {
         aSetpoint = (serialTuner.parameters.aSetpoint - serialTuner.parameters.steering_gain);
       }
     } else {
+      // Not drive mode
       aSetpoint = serialTuner.parameters.aSetpoint;
     }
-
-
-    //    process_data(tuningMessage);
-  } else {
-    //Serial3.println(tuningMessage);
   }
 
+  // Calculate wheel speed more often when we're telling the robot to move quickly
   encoderTimer = (abs(aOutput) < 40.0) ? 200 : (int)(2000 * (1 / ((aOutput * aOutput) / 180)));
-  ///encoderTimer = (int)(1000*(1/(aOutput * aOutput) / 180));
-  //encoderTimer = 1/(1000*(((aOutput * aOutput) / 180)));
 
   if (millis() > (encoderTimer + last_encoder_time)) {
     pInput = 0.0; //right_encoder.get_velocity();
-    float invalid = left_encoder.get_velocity();
+    // Clear imu buffer (just incase calcs take too long)
     get_mpu_data();
     PIDp.Compute();
     if (serialTuner.parameters.printIMU) {
+      Serial3.print("aInput: ");
       Serial3.print(aInput);
-      Serial3.print("    ");
-      //      //    Serial3.print(aOutput);
-      //      Serial3.print(" P:error,setpoint, input, output  ");
-      //      Serial3.print(pInput - pSetpoint);
-      //      //Serial3.print("    ");
-      //      Serial3.print("    ");
-      //      Serial3.print(pSetpoint);
-      //      Serial3.print("    ");
-      //      Serial3.print(pInput);
-      //      Serial3.print("    po ");
-      //      Serial3.print(pOutput);
-      //      get_mpu_data();
-      //      Serial3.print("  tps: ");
-      //      Serial3.print(right_encoder.get_ticks_per_second());
-      //      Serial3.print("  cnt: ");
-      //      Serial3.print(right_encoder.counter);
-      Serial3.print("    aout");
+      Serial3.print("  , aout: ");
       Serial3.println(aOutput);
-      //      Serial3.print("    encTim ");
-      //      Serial3.print(encoderTimer);
-      //      Serial3.print("    encTimMth ");
-      //      Serial3.print((int)(2000 * (1 / ((aOutput * aOutput) / 180))));
-      //
-      //
-      //      Serial3.println(" ");
     }
     last_encoder_time = millis();
   }
+
+  // Adjust goal angle based off velocity to hold a position
   if (serialTuner.parameters.positionModeEnable) {
-    //aSetpoint = serialTuner.parameters.aSetpoint - pOutput;
+    // aSetpoint = serialTuner.parameters.aSetpoint - pOutput;
   }
 
-  //ticks_per_second = right_encoder.get_ticks_per_second();
   PIDa.Compute();
 
-  if (serialTuner.parameters.printIMU) {
-    //Serial3.print(left_encoder.get_velocity());
-    //Serial3.print("    ");
-    //    Serial3.print("A:error,setpoint, input, output  ");
-    //    Serial3.print(aInput - aSetpoint);
-    //    //Serial3.print("    ");
-    //    Serial3.print("    ");
-    //    Serial3.print(aSetpoint);
-    //    Serial3.print("    ");
-    //    Serial3.print(aInput);
-    //    Serial3.print("    ");
-    ////    Serial3.print(aOutput);
-    //    Serial3.print(" P:error,setpoint, input, output  ");
-    //    Serial3.print(pInput - pSetpoint);
-    //    //Serial3.print("    ");
-    //    Serial3.print("    ");
-    //    Serial3.print(pSetpoint);
-    //    Serial3.print("    ");
-    //    Serial3.print(pInput);
-    //    Serial3.print("    ");
-    //    Serial3.print(pOutput);
-    //print_velocity();
-    //    Serial3.println(" ");
-  }
-
+  // Make scary sounds during startup to warn of motors about to turn on
   if (millis() < imu_startup_timer) {
-
-    hoverboard.sendBuzzer(10, 1, 10, PROTOCOL_SOM_NOACK);
-    delay((imu_startup_timer - millis()) / 20);
-    hoverboard.sendBuzzer(8, 1, 40, PROTOCOL_SOM_NOACK);
-    delay((imu_startup_timer - millis()) / 20);
-
+    scary_startup_sounds(imu_startup_timer);
     if (serialTuner.parameters.skipStartupTimer) {
       imu_startup_timer = 0;
-
     }
   }
 
@@ -367,34 +253,20 @@ void loop() {
     if (!serialTuner.parameters.enable_motors) {
       aOutputOffset = hoverboardDeadzone + serialTuner.parameters.aDeadzone;
       if (aOutput > 0) {
-        //hoverboard.sendPWM((-1) * (aOutput + aOutputOffset), (-1) * (aOutput + aOutputOffset), PROTOCOL_SOM_NOACK);
-        //hoverboard.sendPWM((-1) * (aOutput + aOutputOffset), 0, PROTOCOL_SOM_NOACK);
+        // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
         hoverboard.sendPWMData((-1) * (aOutput + aOutputOffset), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
-        //     void sendPWMData(int16_t pwm, int16_t steer = 0, int speed_max_power = 600, int speed_min_power = -600, int speed_minimum_pwm = 10, char som = PROTOCOL_SOM_ACK);
-
       } else {
-        // hoverboard.sendPWM((-1)*aOutput, (-1)*aOutput, PROTOCOL_SOM_NOACK);
-        //hoverboard.sendPWM((-1) * (aOutput - aOutputOffset), (-1) * (aOutput - aOutputOffset), PROTOCOL_SOM_NOACK);
-        //hoverboard.sendPWM((-1) * (aOutput - aOutputOffset), 0, PROTOCOL_SOM_NOACK);
         hoverboard.sendPWMData((-1) * (aOutput - aOutputOffset), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
       }
     }
   }
 
-
-  if (((millis() - timer_2) > 1000) && p_flag) {
-    //void HoverboardAPI::sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
+  if (((millis() - unlock_ascii_timer) > 1000) && unlock_ascii_on_startup) {
+    //sendBuzzer(uint8_t buzzerFreq, uint8_t buzzerPattern, uint16_t buzzerLen, char som)
     hoverboard.sendBuzzer(10, 1, 100, PROTOCOL_SOM_NOACK);
     Serial4.println("unlockASCII");
     Serial4.println('P');
-    p_flag = false;
+    unlock_ascii_on_startup = false;
   }
-  //
-  //  btMessage = btSerial.checkForNewMessage('&');
-  //
-  //  if (btMessage.id != '\0') {
-  //    global_ID = btMessage.id;
-  //    global_value = btMessage.value;
-  //  }
 
 }
