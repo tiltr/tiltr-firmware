@@ -1,18 +1,17 @@
-  
+/*
+  Timebase callback
+  This example shows how to configure HardwareTimer to execute a callback at regular interval.
+  Callback toggles pin.
+  Once configured, there is only CPU load for callbacks executions.
+*/
 
 
-//#HardwareTimer *MyTim = new HardwareTimer(TIM3);  // TIM3 is MCU hardware peripheral instance, its definition is provided in CMSIS
-
-#if defined(LED_BUILTIN)
-#define pin  LED_BUILTIN
-#else
-#define pin  D2
-#endif
+#define pin  13
 
 
 void Update_IT_callback(HardwareTimer*)
 { // Toggle pin. 10hz toogle --> 5Hz PWM
-    digitalWrite(pin, !digitalRead(pin));
+  digitalWrite(pin, !digitalRead(pin));
 }
 
 
@@ -31,7 +30,7 @@ void setup()
   pinMode(pin, OUTPUT);
 
   MyTim->setMode(2, TIMER_OUTPUT_COMPARE);  // In our case, channekFalling is configured but not really used. Nevertheless it would be possible to attach a callback to channel compare match.
-  MyTim->setOverflow(10000, HERTZ_FORMAT); // 10 Hz
+  MyTim->setOverflow(10, HERTZ_FORMAT); // 10 Hz
   MyTim->attachInterrupt(Update_IT_callback);
   MyTim->resume();
 }
