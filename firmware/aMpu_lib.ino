@@ -321,7 +321,10 @@ float get_imu_data(int element) {
             mpu.dmpGetQuaternion(&q, fifoBuffer);
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-            float imu_data = ypr[element] * 180/M_PI;
+            float x = ypr[element] * 180/M_PI;
+            float imu_data = (x > 0) ? 180.0 - x : (-180.0) - x;
+            imu_data = imu_data * (-1);
+            //float imu_data = ypr[element] * 180/M_PI;
             return imu_data;
 //            imu_data.roll = ypr[2] * 180/M_PI;
 //            imu_data.pitch = ypr[1] * 180/M_PI;

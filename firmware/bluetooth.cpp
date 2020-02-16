@@ -63,8 +63,50 @@ struct btData SerialMessenger::checkForNewMessage(const char endMarker)
       }
     }
   }
-
   return parsed_data;
+}
+
+
+char* SerialMessenger::returnNewMessage(const char endMarker)
+{
+  bool errors = false;
+  struct btData parsed_data;
+  stream = hwStream;
+  if (stream->available())
+  {
+    if (stream->peek() == '\r')
+    {
+      (void)stream->read();
+      return "xx";//parsed_data;
+    }
+    incomingMessage[idx] = stream->read();
+    if (incomingMessage[idx] == endMarker)
+    {
+      incomingMessage[idx] = '\0';
+      idx = 0;
+      //Serial.println(incomingMessage);
+      //parsed_data = parseMessage(incomingMessage);
+      return incomingMessage;
+    }
+    else
+    {
+      idx++;
+      if (idx > MESSAGE_LENGTH - 1)
+      {
+        if (errors)
+        {
+          stream->print(F("{\"error\":\"message too long\"}\n"));
+        }
+        while (stream->read() != '&')
+        {
+          delay(50);
+        }
+        idx = 0;
+        incomingMessage[idx] = '\0';
+      }
+    }
+  }
+  return "xx";//parsed_data;
 }
 
 void SerialMessenger::begin(uint32_t baudRate)

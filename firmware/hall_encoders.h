@@ -25,12 +25,15 @@ class wheel_encoder
   public:
     wheel_encoder(char side);
     void dot();
+    int ticks_per_second;
+    int last_ticks_per_second;
+    int get_ticks_per_second();
 
-    int get_counter();
+    long get_counter();
     bool get_direction();
     void dash();
     volatile bool forward = false;
-    volatile int counter = 0;
+    volatile long counter = 0;
     int hall_A_int;
     int hall_B_int;
     int hall_C_int;
@@ -41,6 +44,7 @@ class wheel_encoder
     float velocity;
     long timer;
   private:
+  long secondTimer;
     long last_counter;
     int invert ;
 

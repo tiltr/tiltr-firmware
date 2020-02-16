@@ -19,6 +19,7 @@ class SerialMessenger {
 
     void begin(uint32_t baudRate);
     struct btData checkForNewMessage(const char endMarker);
+    char* returnNewMessage(const char endMarker);
 
   private:
     struct btData parseMessage(char* incommingMessage);

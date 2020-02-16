@@ -16,6 +16,15 @@ wheel_encoder::wheel_encoder(char side)
     invert = -1;
   }
   timer = millis();
+  secondTimer = millis();
+}
+int wheel_encoder::get_ticks_per_second() {
+  if (millis() > (secondTimer + 1000)) {
+    ticks_per_second = counter - last_ticks_per_second ;
+    secondTimer = millis();
+    last_ticks_per_second = counter;
+  }
+  return ticks_per_second;
 }
 
 float wheel_encoder::get_velocity() {
@@ -27,7 +36,7 @@ float wheel_encoder::get_velocity() {
   return velocity;
 }
 
-int wheel_encoder::get_counter() {
+long wheel_encoder::get_counter() {
   return counter;
 }
 
@@ -45,7 +54,7 @@ void wheel_encoder::hall_a_change()
     forward = (digitalRead(hall_B_int) ? false : true);
   }
   counter += (forward ? 1 : (-1));
-
+  //ticks_per_second += 1;
   digitalWrite(LED, (forward ? HIGH : LOW));
 }
 
@@ -60,6 +69,7 @@ void wheel_encoder::hall_b_change()
     forward = (!digitalRead(hall_C_int) ? true : false);
   }
   counter += (forward ? 1 : (-1));
+  //ticks_per_second += 1;
   digitalWrite(LED, (forward ? HIGH : LOW));
 }
 
@@ -72,6 +82,7 @@ void wheel_encoder::hall_c_change()
     forward = (digitalRead(hall_A_int) ? true : false);
   }
   counter += (forward ? 1 : (-1));
+  //ticks_per_second += 1;
   digitalWrite(LED, (forward ? HIGH : LOW));
 
 
