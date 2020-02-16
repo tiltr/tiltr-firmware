@@ -1,10 +1,9 @@
 #include "bluetooth.h"
 #include "parse_serial_tuning.h"
-#include "PID_v1.h"
+#include <PID_v1.h>
 #include <hall_encoders.h>
 #include <HoverboardAPI.h>
 #include <Filters.h>
-#include <ros.h>
 
 #define LED PA5
 
@@ -236,12 +235,9 @@ void loop() {
   //
   //  }
 
-  while (1) {
-    test_motors(0, 200, 1);
-//    for (int i = 10; i > 1; i--) {
-//      test_motors(0, 200, i);
-//    }
-  }
+  //  while (1) {
+  //    test_motors(30, 200, 50);
+  //  }
 
   //print_velocity();
   get_mpu_data();
@@ -280,7 +276,7 @@ void loop() {
   //encoderTimer = 1/(1000*(((aOutput * aOutput) / 180)));
 
   if (millis() > (encoderTimer + last_encoder_time)) {
-    pInput = 0.0; //right_encoder.get_velocity();
+    pInput = right_encoder.get_velocity();
     float invalid = left_encoder.get_velocity();
     get_mpu_data();
     PIDp.Compute();
@@ -315,7 +311,7 @@ void loop() {
     last_encoder_time = millis();
   }
   if (serialTuner.parameters.positionModeEnable) {
-    //aSetpoint = serialTuner.parameters.aSetpoint - pOutput;
+    aSetpoint = serialTuner.parameters.aSetpoint - pOutput;
   }
 
   //ticks_per_second = right_encoder.get_ticks_per_second();

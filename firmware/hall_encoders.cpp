@@ -33,7 +33,6 @@ float wheel_encoder::get_velocity() {
   last_counter = counter ;
   timer = millis();
 
-  //return 0.0;
   return velocity;
 }
 

@@ -6,7 +6,7 @@
 //#define INITIAL_HOME_ANGLE 165.32 // degrees
 //#define INITIAL_HOME_ANGLE 167.5 // degrees
 //#define INITIAL_HOME_ANGLE 162.82 // box
-#define INITIAL_HOME_ANGLE 4.0 // box
+#define INITIAL_HOME_ANGLE -1.0 // box
 
 
 struct tuningParameters {
@@ -17,7 +17,7 @@ struct tuningParameters {
   double pKp = 9.0 , pKi = 0.0, pKd = 0.01;
   //pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
   //double aKp = 45.0, aKi = 5.0, aKd = 0.9;
-  double aKp = 36.0, aKi = 0.0, aKd = 0.1;
+  double aKp = 18.0, aKi = 5.0, aKd = 0.1;
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
@@ -43,7 +43,7 @@ struct tuningParameters {
   bool printFlag = false;
   bool printIMU = true;
 
-  bool positionModeEnable = false;
+  bool positionModeEnable = true;
   bool forward = false;
   bool backward = false;
   bool left = false;
