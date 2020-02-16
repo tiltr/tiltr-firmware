@@ -33,30 +33,6 @@ HoverboardAPI hoverboard = HoverboardAPI(serialWrapper);
 
 wheel_encoder left_encoder('L');
 wheel_encoder right_encoder('R');
-void l_hall_a_change() {
-  left_encoder.hall_a_change();
-}
-void l_hall_b_change() {
-  left_encoder.hall_b_change();
-}
-void l_hall_c_change() {
-  left_encoder.hall_c_change();
-}
-
-void r_hall_a_change() {
-  right_encoder.hall_a_change();
-}
-void r_hall_b_change() {
-  right_encoder.hall_b_change();
-}
-void r_hall_c_change() {
-  right_encoder.hall_c_change();
-}
-
-// Call frequently to stop imu buffer overflowing
-void get_mpu_data() {
-  float imu_data = get_imu_data(0);
-}
 
 /*-----( PID variables )------*/
 double aInput, aOutput;
@@ -109,6 +85,11 @@ void setup() {
   PIDp.SetOutputLimits(serialTuner.parameters.pOutputMin, serialTuner.parameters.pOutputMax);
   PIDp.SetMode(AUTOMATIC);
 
+}
+
+// Call frequently to stop imu buffer overflowing
+void get_mpu_data() {
+  float imu_data = get_imu_data(0);
 }
 
 void print_velocity() {
@@ -265,4 +246,24 @@ void loop() {
     unlock_ascii_on_startup = false;
   }
 
+}
+
+void l_hall_a_change() {
+  left_encoder.hall_a_change();
+}
+void l_hall_b_change() {
+  left_encoder.hall_b_change();
+}
+void l_hall_c_change() {
+  left_encoder.hall_c_change();
+}
+
+void r_hall_a_change() {
+  right_encoder.hall_a_change();
+}
+void r_hall_b_change() {
+  right_encoder.hall_b_change();
+}
+void r_hall_c_change() {
+  right_encoder.hall_c_change();
 }
