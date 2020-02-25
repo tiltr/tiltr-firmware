@@ -6,7 +6,7 @@
 //#define INITIAL_HOME_ANGLE 165.32 // degrees
 //#define INITIAL_HOME_ANGLE 167.5 // degrees
 //#define INITIAL_HOME_ANGLE 162.82 // box
-#define INITIAL_HOME_ANGLE 4.0 // box
+#define INITIAL_HOME_ANGLE 3.67 // box
 
 
 struct tuningParameters {
@@ -17,7 +17,7 @@ struct tuningParameters {
   double pKp = 9.0 , pKi = 0.0, pKd = 0.01;
   //pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
   //double aKp = 45.0, aKi = 5.0, aKd = 0.9;
-  double aKp = 36.0, aKi = 0.0, aKd = 0.1;
+  double aKp = 120.0, aKi = 0.0, aKd = 0.0;
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
@@ -34,7 +34,7 @@ struct tuningParameters {
   bool skipStartupTimer = false;
   double directMotorSpeed = 0.0;
 
-  bool enable_motors = false;
+  bool enable_motors = true;
   int iTune = 99;
   bool tuneA = false, tuneP = false;
   bool posLimitUpdate = false;
