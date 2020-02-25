@@ -46,8 +46,8 @@ PID PIDa(&aInput, &aOutput, &aSetpoint, serialTuner.parameters.aKp, serialTuner.
 /*-----( Timers )------*/
 bool unlock_ascii_on_startup = true;
 int print_velocity_period = 50; // ms
-int print_period = 50; // ms
-long imu_startup_timer = 3000; // ms
+int print_period = 100; // ms
+long imu_startup_timer = 30000; // ms
 int encoderTimer = 200; // Default frequency for calculating wheel velocities (ms), increases when robot is slow
 long print_velocity_timer = millis();
 long last_encoder_time = millis();
@@ -78,6 +78,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(right_encoder.hall_A_int), r_hall_c_change, CHANGE);
 
   pinMode(LED, OUTPUT);
+
+  PIDa.SetSampleTime(5);
 
   PIDa.SetOutputLimits(aOutputMin, aOutputMax);
   PIDa.SetMode(AUTOMATIC);
@@ -167,9 +169,9 @@ void loop() {
   // should be called via timer-interrupt
   get_mpu_data();
 
-  while (1) {
-    test_motors(0, 200, 1);
-  }
+//  while (1) {
+//    test_motors(0, 200, 1);
+//  }
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
