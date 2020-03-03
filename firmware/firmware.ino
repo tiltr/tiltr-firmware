@@ -42,6 +42,8 @@ float aOutputMin = -100.0;
 double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
 PID PIDp(&pInput, &pOutput, &pSetpoint, serialTuner.parameters.pKp, serialTuner.parameters.pKi, serialTuner.parameters.pKd, DIRECT);
 PID PIDa(&aInput, &aOutput, &aSetpoint, serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd, DIRECT);
+double hoverboard_PWM_command = 0;
+
 
 /*-----( Timers )------*/
 bool unlock_ascii_on_startup = true;
@@ -169,9 +171,9 @@ void loop() {
   // should be called via timer-interrupt
   get_mpu_data();
 
-//  while (1) {
-//    test_motors(0, 200, 1);
-//  }
+  //  while (1) {
+  //    test_motors(0, 200, 1);
+  //  }
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
@@ -226,11 +228,24 @@ void loop() {
       imu_ready = true;
     }
     if (!serialTuner.parameters.enable_motors) {
-      if (aOutput > 0) {
-        // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
-        hoverboard.sendPWMData((-1) * (aOutput + serialTuner.parameters.aDeadzone), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+      if (abs(aOutput) < serialTuner.parameters.CZn) {
+        if (aOutput > 0) {
+          hoverboard_PWM_command = map(aOutput, 0, serialTuner.parameters.CZn, 0, serialTuner.parameters.CZo);
+        } else {
+          hoverboard_PWM_command = map(aOutput, (-1.0) * serialTuner.parameters.CZn, 0, (-1.0) * serialTuner.parameters.CZo, 0);
+        }
       } else {
-        hoverboard.sendPWMData((-1) * (aOutput - serialTuner.parameters.aDeadzone), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+        if (aOutput > 0) {
+          hoverboard_PWM_command = aOutput - serialTuner.parameters.CZn + serialTuner.parameters.CZo;
+        } else {
+          hoverboard_PWM_command = aOutput + serialTuner.parameters.CZn - serialTuner.parameters.CZo;
+        }
+      }
+      if (aOutput > 0) {
+      // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
+      hoverboard.sendPWMData((-1) * hoverboard_PWM_command, 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+      } else {
+        hoverboard.sendPWMData((-1) * hoverboard_PWM_command, 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
       }
     }
   }

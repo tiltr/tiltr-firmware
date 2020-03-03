@@ -17,7 +17,7 @@ struct tuningParameters {
   double pKp = 9.0 , pKi = 0.0, pKd = 0.01;
   //pre ollysdouble pKp = 10.0 , pKi = 0.0, pKd = 0.08;
   //double aKp = 45.0, aKi = 5.0, aKd = 0.9;
-  double aKp = 120.0, aKi = 0.0, aKd = 0.0;
+  double aKp = 80.0, aKi = 0.0, aKd = 0.0;
   double aInput, aOutput;
   double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
   double aSetpoint = aHome;
@@ -28,6 +28,9 @@ struct tuningParameters {
   float pOutputMax = 5;
   float pOutputMin = -5;
   float steering_gain = 0.0;
+
+  float CZo = 40.0;
+  float CZn = 9.0;
 
   bool pOutputLimitChanged = false;
 
