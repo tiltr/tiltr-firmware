@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include "hall_encoders.h"
 
+//#define LED_OUTPUT
+
 wheel_encoder::wheel_encoder(char side)
 {
   if (side == 'r' || side == 'R') {
@@ -28,12 +30,6 @@ int wheel_encoder::get_ticks_per_second() {
 }
 
 float wheel_encoder::get_velocity() {
-  velocity = float(((float)wheel_arc_per_tick * ((float)counter - (float)last_counter)) / (1000 * ((float)millis() - (float)timer))) * 1000.0;
-  velocity = velocity * (float)invert;
-  last_counter = counter ;
-  timer = millis();
-
-  //return 0.0;
   return velocity;
 }
 
@@ -43,6 +39,13 @@ long wheel_encoder::get_counter() {
 
 bool wheel_encoder::get_direction() {
   return forward;
+}
+
+void wheel_encoder::calculate_velocity() {
+  velocity = float(((float)wheel_arc_per_tick * ((float)counter - (float)last_counter)) / (1000 * ((float)millis() - (float)timer))) * 1000.0;
+  velocity = velocity * (float)invert;
+  last_counter = counter ;
+  timer = millis();
 }
 
 void wheel_encoder::hall_a_change()
@@ -55,8 +58,13 @@ void wheel_encoder::hall_a_change()
     forward = (digitalRead(hall_B_int) ? false : true);
   }
   counter += (forward ? 1 : (-1));
+  if (calculate_on_tick) {
+    calculate_velocity();
+  }
   //ticks_per_second += 1;
+#ifdef LED_OUTPUT
   digitalWrite(LED, (forward ? HIGH : LOW));
+#endif
 }
 
 void wheel_encoder::hall_b_change()
@@ -70,8 +78,13 @@ void wheel_encoder::hall_b_change()
     forward = (!digitalRead(hall_C_int) ? true : false);
   }
   counter += (forward ? 1 : (-1));
+  if (calculate_on_tick) {
+    calculate_velocity();
+  }
   //ticks_per_second += 1;
+#ifdef LED_OUTPUT
   digitalWrite(LED, (forward ? HIGH : LOW));
+#endif
 }
 
 void wheel_encoder::hall_c_change()
@@ -83,8 +96,12 @@ void wheel_encoder::hall_c_change()
     forward = (digitalRead(hall_A_int) ? true : false);
   }
   counter += (forward ? 1 : (-1));
+  if (calculate_on_tick) {
+    calculate_velocity();
+  }
   //ticks_per_second += 1;
+#ifdef LED_OUTPUT
   digitalWrite(LED, (forward ? HIGH : LOW));
-
+#endif
 
 }

@@ -293,6 +293,7 @@ void serialTuningParser::parse_message(const char* message) {
           break;
         case 's':
           parameters.pSetpoint = value;
+          parameters.updatePositionPID = true;
           break;
         case 'o':
           parameters.pOutputLimitChanged = true;
