@@ -28,6 +28,7 @@ class wheel_encoder
     int ticks_per_second;
     int last_ticks_per_second;
     int get_ticks_per_second();
+    void calculate_velocity();
 
     long get_counter();
     bool get_direction();
@@ -43,6 +44,7 @@ class wheel_encoder
     float get_velocity();
     float velocity;
     long timer;
+    volatile bool calculate_on_tick = false;
   private:
   long secondTimer;
     long last_counter;

@@ -42,19 +42,49 @@ float aOutputMin = -100.0;
 double pSetpoint = 0.0, pInput = 0.0, pOutput = 0.0;
 PID PIDp(&pInput, &pOutput, &pSetpoint, serialTuner.parameters.pKp, serialTuner.parameters.pKi, serialTuner.parameters.pKd, DIRECT);
 PID PIDa(&aInput, &aOutput, &aSetpoint, serialTuner.parameters.aKp, serialTuner.parameters.aKi, serialTuner.parameters.aKd, DIRECT);
+double hoverboard_PWM_command = 0;
+double robot_velocity = 0;
+
 
 /*-----( Timers )------*/
 bool unlock_ascii_on_startup = true;
 int print_velocity_period = 50; // ms
-int print_period = 50; // ms
+int print_period = 100; // ms
 long imu_startup_timer = 3000; // ms
-int encoderTimer = 200; // Default frequency for calculating wheel velocities (ms), increases when robot is slow
 long print_velocity_timer = millis();
-long last_encoder_time = millis();
 long print_timer = millis();
+int encoderTimer = 150; // Default frequency for calculating wheel velocities (ms)slow
 bool imu_ready = false;
 
+void Update_IT_callback(HardwareTimer*)
+{ // Toggle pin. 10hz toogle --> 5Hz PWM
+  digitalWrite(13, !digitalRead(13));
+  if (!right_encoder.calculate_on_tick) {
+    right_encoder.calculate_velocity();
+  }
+  if (!left_encoder.calculate_on_tick) {
+    left_encoder.calculate_velocity();
+  }
+  robot_velocity = right_encoder.get_velocity();
+}
+#if defined(TIM1)
+TIM_TypeDef *Instance = TIM1;
+#else
+TIM_TypeDef *Instance = TIM2;
+#endif
+
+// Instantiate HardwareTimer object. Thanks to 'new' instanciation, HardwareTimer is not destructed when setup() function is finished.
+HardwareTimer *MyTim = new HardwareTimer(Instance);
+
 void setup() {
+
+  // configure pin in output mode
+  pinMode(13, OUTPUT);
+
+  MyTim->setMode(2, TIMER_OUTPUT_COMPARE);  // In our case, channekFalling is configured but not really used. Nevertheless it would be possible to attach a callback to channel compare match.
+  MyTim->setOverflow((encoderTimer * 1000), MICROSEC_FORMAT); // 10 Hz
+  MyTim->attachInterrupt(Update_IT_callback);
+  MyTim->resume();
 
   // Comms to PC
   Serial.begin(115200);
@@ -78,6 +108,9 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(right_encoder.hall_A_int), r_hall_c_change, CHANGE);
 
   pinMode(LED, OUTPUT);
+
+  PIDa.SetSampleTime(5);
+  PIDp.SetSampleTime(1);
 
   PIDa.SetOutputLimits(aOutputMin, aOutputMax);
   PIDa.SetMode(AUTOMATIC);
@@ -131,6 +164,7 @@ void apply_tunings() {
     Serial3.println("Angle PID gains updated");
   } else if (serialTuner.parameters.updatePositionPID) {
     PIDp.SetTunings(serialTuner.parameters.pKp, serialTuner.parameters.pKi, serialTuner.parameters.pKd);
+    pSetpoint = serialTuner.parameters.pSetpoint;
     serialTuner.parameters.updatePositionPID = false;
     Serial3.println("Position PID gains updated");
   }
@@ -161,15 +195,35 @@ void unlock_ascii() {
   Serial4.println('P'); // Disable poweroff & constant beeping
 }
 
+double velocity_filo[8];
+double pInput_filter(double robot_vel) {
+  byte arrayLen = sizeof(velocity_filo) / sizeof(velocity_filo[0]);
+  velocity_filo[0] = robot_vel;
+  for (byte i = 0; i < arrayLen - 1; i++)
+  {
+    velocity_filo[i + 1] = velocity_filo[i];
+  }
+  double out = 0;
+  for (int i = 0; i < arrayLen; i++) {
+    out += velocity_filo[i];
+  }
+  out = out / arrayLen;
+  return out;
+}
+
+void encoders_calculate_on_tick(bool calculate_on_tick) {
+  right_encoder.calculate_on_tick = calculate_on_tick;
+  left_encoder.calculate_on_tick = calculate_on_tick;
+}
 
 void loop() {
   // Call frequently to stop buffer overflowing,
   // should be called via timer-interrupt
   get_mpu_data();
 
-  while (1) {
-    test_motors(0, 200, 1);
-  }
+  //  while (1) {
+  //    test_motors(0, 200, 1);
+  //  }
 
   char* tuningMessage = tuningSerial.returnNewMessage('\n');
   if (tuningMessage != "xx") {
@@ -190,32 +244,28 @@ void loop() {
     }
   }
 
-  // Calculate wheel speed more often when we're telling the robot to move quickly
-  encoderTimer = (abs(aOutput) < 40.0) ? 200 : (int)(2000 * (1 / ((aOutput * aOutput) / 180)));
-
-  if (millis() > (encoderTimer + last_encoder_time)) {
-    pInput = 0.0; //right_encoder.get_velocity();
-    // Clear imu buffer (just in case calcs take too long)
-    get_mpu_data();
-    PIDp.Compute();
-    last_encoder_time = millis();
-  }
-
+  pInput = pInput_filter(robot_velocity);
+  //pInput = robot_velocity;
   aInput = get_imu_data(2);
 
   if ((millis() > (print_timer + print_period)) && serialTuner.parameters.printIMU) {
-    Serial3.print("aInput: ");
+    Serial3.print("pIn: ");
+    Serial3.print(pInput);
+    Serial3.print(". pOut: ");
+    Serial3.print(pOutput);
+    Serial3.print(". angle: ");
     Serial3.print(aInput);
-    Serial3.print("  , aout: ");
-    Serial3.println(aOutput);
+    Serial3.print(". aSet: ");
+    Serial3.println(aSetpoint);
     print_timer = millis();
   }
 
   // Adjust goal angle based off velocity to hold a position
   if (serialTuner.parameters.positionModeEnable) {
-    // aSetpoint = serialTuner.parameters.aSetpoint - pOutput;
+    aSetpoint = serialTuner.parameters.aSetpoint + pOutput;
   }
 
+  PIDp.Compute();
   PIDa.Compute();
 
   if (millis() > imu_startup_timer) {
@@ -224,12 +274,26 @@ void loop() {
       imu_ready = true;
     }
     if (!serialTuner.parameters.enable_motors) {
-      if (aOutput > 0) {
-        // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
-        hoverboard.sendPWMData((-1) * (aOutput + serialTuner.parameters.aDeadzone), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+      if (abs(aOutput) < serialTuner.parameters.CZn) {
+        if (aOutput > 0) {
+          hoverboard_PWM_command = map(aOutput, 0, serialTuner.parameters.CZn, 0, serialTuner.parameters.CZo);
+        } else {
+          hoverboard_PWM_command = map(aOutput, (-1.0) * serialTuner.parameters.CZn, 0, (-1.0) * serialTuner.parameters.CZo, 0);
+        }
       } else {
-        hoverboard.sendPWMData((-1) * (aOutput - serialTuner.parameters.aDeadzone), 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
+        if (aOutput > 0) {
+          hoverboard_PWM_command = aOutput - serialTuner.parameters.CZn + serialTuner.parameters.CZo;
+        } else {
+          hoverboard_PWM_command = aOutput + serialTuner.parameters.CZn - serialTuner.parameters.CZo;
+        }
       }
+      if ((abs(hoverboard_PWM_command) > 50) || (abs(hoverboard_PWM_command) <= 36)) {
+        encoders_calculate_on_tick(false);
+      } else if ((abs(hoverboard_PWM_command) <= 50) && abs(hoverboard_PWM_command) > 36) {
+        encoders_calculate_on_tick(true);
+      }
+      // PWM, steer, speed_max_power, speed_min_power, som (acknowlegdement?)
+      hoverboard.sendPWMData((-1) * hoverboard_PWM_command, 0, 300, -300, 0, PROTOCOL_SOM_NOACK);
     }
   }
 

@@ -31,6 +31,9 @@ void serialTuningParser::print_all() {
   String pkd = "d - pKd: ";
   String psetpoint = "s - pSetpoint: ";
   String poutputlimit = "o - pOutputMax/Min: +";
+
+  String CZo = "o - CZo: ";
+  String CZn = "n - CZn: ";
   Serial3.print(asetpoint);
   Serial3.print(parameters.aSetpoint);
   Serial3.print(" +/- ");
@@ -73,8 +76,11 @@ void serialTuningParser::print_all() {
   Serial3.print(", ");
   Serial3.println(parameters.pOutputMin);
 
-  Serial3.print("aDeadzone: ");
-  Serial3.println(parameters.aDeadzone);
+  Serial3.print("PID output compression CZo: ");
+  Serial3.println(parameters.CZo);
+
+  Serial3.print("PID output compression CZn: ");
+  Serial3.println(parameters.CZn);
 
   parameters.printFlag = true;
 }
@@ -134,6 +140,13 @@ void serialTuningParser::print_changes() {
     print_multi_float("Deadzone:", last_parameters.aDeadzone, parameters.aDeadzone);
   }
 
+  if (last_parameters.CZo != parameters.CZo) {
+    print_multi_float("PID out compression CZo:", last_parameters.CZo, parameters.CZo);
+  }
+
+  if (last_parameters.CZn != parameters.CZn) {
+    print_multi_float("PID out compression CZn:", last_parameters.CZn, parameters.CZn);
+  }
 
 
   //last_parameters.aKp = parameters.aKp;
@@ -162,6 +175,9 @@ void serialTuningParser::parse_message(const char* message) {
         break;
       case 'd':
         Serial3.print("Drive mode active! Press q to quit");
+        break;
+      case 'z':
+        Serial3.print("Tuning other, select o for CZo or n for CZn (PID output compression)");
         break;
       case 'p':
         print_all();
@@ -241,6 +257,22 @@ void serialTuningParser::parse_message(const char* message) {
 
       }
       break;
+    case 'z':
+      // inner state machine
+      switch (key_b) {
+        case 'o':
+          parameters.CZo = value;
+          parameters.updateAnglePID = true;
+          break;
+        case 'n':
+          parameters.CZn = value;
+          parameters.updateAnglePID = true;
+          break;
+        default:
+          break;
+
+      }
+      break;
     case 'v':
       // inner state machine
       switch (key_b) {
@@ -261,6 +293,7 @@ void serialTuningParser::parse_message(const char* message) {
           break;
         case 's':
           parameters.pSetpoint = value;
+          parameters.updatePositionPID = true;
           break;
         case 'o':
           parameters.pOutputLimitChanged = true;
